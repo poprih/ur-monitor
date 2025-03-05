@@ -1,29 +1,38 @@
-package main
+package handler
 
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 )
 
-const lineAPI = "https://api.line.me/v2/bot/message/reply"
-
-// LINE Webhook Request Structs
-type LineWebhookRequest struct {
-	Events []struct {
-		ReplyToken string `json:"replyToken"`
-		Type       string `json:"type"`
+// LineWebhookEvent represents the structure of a LINE webhook event
+type LineWebhookEvent struct {
+	Destination string `json:"destination"`
+	Events      []struct {
+		Type      string `json:"type"`
+		Timestamp int64  `json:"timestamp"`
+		Source    struct {
+			Type    string `json:"type"`
+			UserID  string `json:"userId"`
+			GroupID string `json:"groupId,omitempty"`
+			RoomID  string `json:"roomId,omitempty"`
+		} `json:"source"`
+		ReplyToken string `json:"replyToken,omitempty"`
 		Message    struct {
 			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"message"`
+			ID   string `json:"id"`
+			Text string `json:"text,omitempty"`
+		} `json:"message,omitempty"`
 	} `json:"events"`
 }
 
-type ReplyMessage struct {
+// LineReplyMessage represents the structure for sending a reply to LINE
+type LineReplyMessage struct {
 	ReplyToken string `json:"replyToken"`
 	Messages   []struct {
 		Type string `json:"type"`
@@ -31,68 +40,122 @@ type ReplyMessage struct {
 	} `json:"messages"`
 }
 
-// Handle incoming LINE messages
-func webhookHandler(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Unable to read request", http.StatusBadRequest)
+const lineReplyAPI = "https://api.line.me/v2/bot/message/reply"
+
+// Handler processes incoming LINE webhook events
+func Handler(w http.ResponseWriter, r *http.Request) {
+	// Validate request method
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	r.Body.Close()
 
-	var req LineWebhookRequest
-	if err := json.Unmarshal(body, &req); err != nil {
+	// Read request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Error reading request body: %v", err)
+		http.Error(w, "Unable to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Validate request body
+	if len(body) == 0 {
+		http.Error(w, "Empty request body", http.StatusBadRequest)
+		return
+	}
+
+	// Parse webhook event
+	var webhookEvent LineWebhookEvent
+	if err := json.Unmarshal(body, &webhookEvent); err != nil {
+		log.Printf("Error parsing webhook event: %v", err)
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
 		return
 	}
 
-	for _, event := range req.Events {
-		if event.Type == "message" && event.Message.Type == "text" {
-			replyText(event.ReplyToken, "你发送了: "+event.Message.Text)
+	// Process events
+	for _, event := range webhookEvent.Events {
+		switch event.Type {
+		case "message":
+			if event.Message.Type == "text" {
+				err := processTextMessage(event)
+				if err != nil {
+					log.Printf("Error processing text message: %v", err)
+				}
+			}
+		case "follow":
+			// Handle when a user adds the bot as a friend
+			sendReplyMessage(event.ReplyToken, "Thanks for adding me! I'm here to help.")
+		case "unfollow":
+			// Handle when a user blocks the bot
+			log.Printf("User %s unfollowed the bot", event.Source.UserID)
+		default:
+			log.Printf("Unhandled event type: %s", event.Type)
 		}
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-// Reply to the user
-func replyText(replyToken, message string) {
+// processTextMessage handles incoming text messages
+func processTextMessage(event LineWebhookEvent.Events) error {
+	// Example: Echo the received message with some processing
+	receivedText := event.Message.Text
+	responseText := fmt.Sprintf("You said: %s", receivedText)
+
+	return sendReplyMessage(event.ReplyToken, responseText)
+}
+
+// sendReplyMessage sends a reply to the LINE messaging API
+func sendReplyMessage(replyToken, message string) error {
+	// Retrieve LINE channel access token
 	accessToken := os.Getenv("LINE_CHANNEL_ACCESS_TOKEN")
 	if accessToken == "" {
-		log.Println("Missing LINE_CHANNEL_ACCESS_TOKEN")
-		return
+		return fmt.Errorf("LINE_CHANNEL_ACCESS_TOKEN is not set")
 	}
 
-	reply := ReplyMessage{
+	// Prepare reply message
+	replyMsg := LineReplyMessage{
 		ReplyToken: replyToken,
 		Messages: []struct {
 			Type string `json:"type"`
 			Text string `json:"text"`
-		}{{Type: "text", Text: message}},
+		}{
+			{
+				Type: "text",
+				Text: message,
+			},
+		},
 	}
 
-	data, _ := json.Marshal(reply)
-	req, _ := http.NewRequest("POST", lineAPI, bytes.NewBuffer(data))
+	// Convert to JSON
+	payload, err := json.Marshal(replyMsg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal reply message: %w", err)
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", lineReplyAPI, bytes.NewBuffer(payload))
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
+	// Send request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Println("Error sending reply:", err)
-		return
+		return fmt.Errorf("failed to send reply: %w", err)
 	}
 	defer resp.Body.Close()
 
-	log.Println("Reply sent successfully")
-}
-
-func main() {
-	http.HandleFunc("/webhook", webhookHandler)
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("LINE API error: %s, status code: %d", string(body), resp.StatusCode)
 	}
-	log.Println("Server started on port:", port)
-	http.ListenAndServe(":"+port, nil)
+
+	log.Printf("Successfully sent reply to LINE for token: %s", replyToken)
+	return nil
 }
