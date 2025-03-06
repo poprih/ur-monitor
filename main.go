@@ -1,124 +1,36 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"flag"
-	"fmt"
-	"math/rand"
-	"net/http"
-	"net/url"
-	"os"
-	"strings"
-	"time"
+	"log"
+
+	"github.com/poprih/ur-monitor/cmd/server"
 )
 
-// 响应数据结构
-type ResponseItem struct {
-	Name           string `json:"name"`
-	Floortype      string `json:"floor"`
-	RentNormal     string `json:"rent_normal"`
-	RoomDetailLink string `json:"roomDetailLink"`
-}
-
-// 发送 LINE Notify 消息
-func sendLineMessage(token, message string) error {
-	apiURL := "https://notify-api.line.me/api/notify"
-	data := url.Values{}
-	data.Set("message", message)
-
-	req, _ := http.NewRequest("POST", apiURL, bytes.NewBufferString(data.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Authorization", "Bearer "+token)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to send LINE message, status: %d", resp.StatusCode)
-	}
-	return nil
-}
-
-// 请求房源数据
-func fetchData(danchi string) ([]ResponseItem, error) {
-	url := "https://chintai.r6.ur-net.go.jp/chintai/api/bukken/detail/detail_bukken_room/"
-	postData := fmt.Sprintf("rent_low=&rent_high=&floorspace_low=&floorspace_high=&shisya=80&danchi=%s&shikibetu=0&newBukkenRoom=&orderByField=0&orderBySort=0&pageIndex=0&pageIndex=0&sp=", danchi)
-
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postData)))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var data []ResponseItem
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
-	}
-
-	// 补全 `roomDetailLink` 的域名
-	for i := range data {
-		data[i].RoomDetailLink = "https://www.ur-net.go.jp" + data[i].RoomDetailLink
-	}
-
-	return data, nil
-}
-
 func main() {
-	danchiList := flag.String("danchi", "", "Specify danchi values (comma separated)")
-	lineToken := flag.String("line", "", "Specify LINE Notify token")
-	flag.Parse()
+	log.Println("Starting UR Monitor Service...")
 
-	if *danchiList == "" || *lineToken == "" {
-		fmt.Println("Error: -danchi and -line parameters are required")
-		os.Exit(1)
-	}
+	// 加载配置
+	// server.LoadConfig()
 
-	danchis := strings.Split(*danchiList, ",")
-	rand.New(rand.NewSource(time.Now().UnixNano()))
+	// 初始化数据库
+	// server.InitDB()
 
-	for {
-		// 1~5 分钟随机等待
-		delay := time.Duration(rand.Intn(5)+1) * time.Minute
-		fmt.Printf("Waiting for %v before sending request...\n", delay)
-		time.Sleep(delay)
+	// 启动 Web 服务器
+	go server.StartServer()
 
-		var allResults []ResponseItem
-		for _, danchi := range danchis {
-			fmt.Println("Fetching data for danchi:", danchi)
-			data, err := fetchData(danchi)
-			if err != nil {
-				fmt.Println("Request failed:", err)
-				continue
-			}
-			allResults = append(allResults, data...)
-		}
+	// 启动定时任务
+	// danchiList := os.Getenv("DANCHI_LIST")
+	// lineToken := os.Getenv("LINE_NOTIFY_TOKEN")
+	// if danchiList == "" || lineToken == "" {
+	// 	log.Fatal("DANCHI_LIST and LINE_NOTIFY_TOKEN environment variables are required")
+	// }
+	// danchis := strings.Split(danchiList, ",")
+	// go jobs.StartMonitorJob(danchis, lineToken)
 
-		// 整合所有数据后发送
-		if len(allResults) > 0 {
-			var messageBuilder strings.Builder
-			for _, item := range allResults {
-				messageBuilder.WriteString(fmt.Sprintf("🏠 Name: %s\n🏢 Floor: %s\n💰 Rent: %s\n🔗 Link: %s\n\n",
-					item.Name, item.Floortype, item.RentNormal, item.RoomDetailLink))
-			}
-			message := messageBuilder.String()
-			err := sendLineMessage(*lineToken, message)
-			if err != nil {
-				fmt.Println("Failed to send LINE message:", err)
-			} else {
-				fmt.Println("LINE message sent successfully!")
-			}
-		} else {
-			fmt.Println("No data found, skipping LINE notification.")
-		}
-	}
+	select {} // Keep the main goroutine running
 }
+
+// 本地部署步骤：
+// 1. 设置环境变量 DANCHI_LIST 和 LINE_NOTIFY_TOKEN。
+// 2. 确保数据库已初始化并可用。
+// 3. 运行 `go run main.go` 启动服务。

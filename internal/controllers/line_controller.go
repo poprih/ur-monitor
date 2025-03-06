@@ -1,4 +1,4 @@
-package handler
+package controllers
 
 import (
 	"bytes"
@@ -10,25 +10,27 @@ import (
 	"os"
 )
 
+type Event struct {
+	Type      string `json:"type"`
+	Timestamp int64  `json:"timestamp"`
+	Source    struct {
+		Type    string `json:"type"`
+		UserID  string `json:"userId"`
+		GroupID string `json:"groupId,omitempty"`
+		RoomID  string `json:"roomId,omitempty"`
+	} `json:"source"`
+	ReplyToken string `json:"replyToken,omitempty"`
+	Message    struct {
+		Type string `json:"type"`
+		ID   string `json:"id"`
+		Text string `json:"text,omitempty"`
+	} `json:"message,omitempty"`
+}
+
 // LineWebhookEvent represents the structure of a LINE webhook event
 type LineWebhookEvent struct {
 	Destination string `json:"destination"`
-	Events      []struct {
-		Type      string `json:"type"`
-		Timestamp int64  `json:"timestamp"`
-		Source    struct {
-			Type    string `json:"type"`
-			UserID  string `json:"userId"`
-			GroupID string `json:"groupId,omitempty"`
-			RoomID  string `json:"roomId,omitempty"`
-		} `json:"source"`
-		ReplyToken string `json:"replyToken,omitempty"`
-		Message    struct {
-			Type string `json:"type"`
-			ID   string `json:"id"`
-			Text string `json:"text,omitempty"`
-		} `json:"message,omitempty"`
-	} `json:"events"`
+	Events      []Event
 }
 
 // LineReplyMessage represents the structure for sending a reply to LINE
@@ -42,8 +44,8 @@ type LineReplyMessage struct {
 
 const lineReplyAPI = "https://api.line.me/v2/bot/message/reply"
 
-// Handler processes incoming LINE webhook events
-func Handler(w http.ResponseWriter, r *http.Request) {
+// HandleLineWebhook processes incoming LINE webhook events
+func HandleLineWebhook(w http.ResponseWriter, r *http.Request) {
 	// Validate request method
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -98,7 +100,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // processTextMessage handles incoming text messages
-func processTextMessage(event LineWebhookEvent.Events) error {
+func processTextMessage(event Event) error {
 	// Example: Echo the received message with some processing
 	receivedText := event.Message.Text
 	responseText := fmt.Sprintf("You said: %s", receivedText)
