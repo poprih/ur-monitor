@@ -11,14 +11,6 @@
   ],
   "env": {
     "LINE_CHANNEL_SECRET": "@line_channel_secret",
-    "LINE_CHANNEL_TOKEN": "@line_channel_token",
-    "MONGODB_URI": "@mongodb_uri",
-    "UR_API_KEY": "@ur_api_key"
-  },
-  "crons": [
-    {
-      "path": "/api/monitor",
-      "schedule": "0 */1 * * *"
-    }
-  ]
+    "LINE_CHANNEL_TOKEN": "@line_channel_token"
+  }
 }
