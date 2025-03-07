@@ -1,12 +1,6 @@
 {
-  "functions": {
-    "api/*.go": {
-      "runtime": "go1.20"
-    }
-  },
   "routes": [
     { "src": "/api/line-webhook", "dest": "/api/line-webhook.go" },
-    { "src": "/api/monitor", "dest": "/api/monitor.go" },
     { "src": "/api/health", "dest": "/api/health.go" }
   ]
 }
