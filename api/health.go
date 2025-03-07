@@ -5,9 +5,7 @@ import (
 	"net/http"
 	"os"
 	"time"
-
-	"github.com/poprih/ur-monitor/internal/config"
-	"github.com/poprih/ur-monitor/pkg/db"
+	// "github.com/poprih/ur-monitor/pkg/db"
 )
 
 type HealthStatus struct {
@@ -37,32 +35,32 @@ func Health(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check database connection
-	dbStatus := "disconnected"
-	if client, err := db.GetMongoClient(); err == nil {
-		if err := client.Ping(r.Context(), nil); err == nil {
-			dbStatus = "connected"
-		}
-	}
+	// dbStatus := "disconnected"
+	// if client, err := db.GetMongoClient(); err == nil {
+	// 	if err := client.Ping(r.Context(), nil); err == nil {
+	// 		dbStatus = "connected"
+	// 	}
+	// }
 
 	// Check if config loaded successfully
-	configLoaded := false
-	if _, err := config.GetConfig(); err == nil {
-		configLoaded = true
-	}
+	// configLoaded := false
+	// if _, err := config.GetConfig(); err == nil {
+	// 	configLoaded = true
+	// }
 
 	// Prepare health status response
 	status := HealthStatus{
 		Status:    "ok",
 		Timestamp: time.Now(),
 		Version:   os.Getenv("VERSION"),
-		Database:  dbStatus,
-		Config:    configLoaded,
+		// Database:  dbStatus,
+		// Config:    configLoaded,
 	}
 
 	// If database is not connected, set status to warning
-	if dbStatus != "connected" {
-		status.Status = "warning"
-	}
+	// if dbStatus != "connected" {
+	// 	status.Status = "warning"
+	// }
 
 	// Respond with JSON
 	w.Header().Set("Content-Type", "application/json")
