@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
+	"github.com/poprih/ur-monitor/internal/config"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // MongoClient wraps a MongoDB client
@@ -76,4 +79,63 @@ func (mc *MongoClient) GetCollection(name string) *mongo.Collection {
 // GetContext returns the context
 func (mc *MongoClient) GetContext() context.Context {
 	return mc.ctx
+}
+
+var (
+	client *mongo.Client
+	once   sync.Once
+	err    error
+)
+
+// GetMongoClient returns a MongoDB client, creating it if necessary
+func GetMongoClient() (*mongo.Client, error) {
+	once.Do(func() {
+		// Get configuration
+		cfg, configErr := config.GetConfig()
+		if configErr != nil {
+			err = configErr
+			return
+		}
+
+		// Create a context with timeout for the connection
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// Create client options
+		clientOptions := options.Client().ApplyURI(cfg.MongoDBURI)
+
+		// Connect to MongoDB
+		client, err = mongo.Connect(ctx, clientOptions)
+		if err != nil {
+			return
+		}
+
+		// Ping the database to verify connection
+		err = client.Ping(ctx, readpref.Primary())
+	})
+
+	return client, err
+}
+
+// GetDatabase returns a specific MongoDB database
+func GetDatabase() (*mongo.Database, error) {
+	client, err := GetMongoClient()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := config.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return client.Database(cfg.MongoDBDatabase), nil
+}
+
+// CloseConnection closes the MongoDB connection
+func CloseConnection(ctx context.Context) error {
+	if client != nil {
+		return client.Disconnect(ctx)
+	}
+	return nil
 }
