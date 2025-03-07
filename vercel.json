@@ -1,6 +1,3 @@
 {
-  "routes": [
-    { "src": "/api/line-webhook", "dest": "/api/line-webhook.go" },
-    { "src": "/api/health", "dest": "/api/health.go" }
-  ]
+  "routes": [{ "src": "/api/health", "dest": "/api/health.go" }]
 }
