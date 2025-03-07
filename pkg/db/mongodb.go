@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/poprih/ur-monitor/internal/config"
+	"github.com/poprih/ur-monitor/lib/config"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"

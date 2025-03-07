@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/poprih/ur-monitor/internal/models"
-	"github.com/poprih/ur-monitor/internal/repositories"
-	"github.com/poprih/ur-monitor/internal/services"
+	"github.com/poprih/ur-monitor/lib/models"
+	"github.com/poprih/ur-monitor/lib/repositories"
+	"github.com/poprih/ur-monitor/lib/services"
 	"github.com/poprih/ur-monitor/pkg/db"
 )
 

@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/poprih/ur-monitor/internal/repositories"
+	"github.com/poprih/ur-monitor/lib/repositories"
 )
 
 // MonitorService handles UR property monitoring

@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/poprih/ur-monitor/internal/models"
-	"github.com/poprih/ur-monitor/internal/repositories"
+	"github.com/poprih/ur-monitor/lib/models"
+	"github.com/poprih/ur-monitor/lib/repositories"
 )
 
 const lineReplyAPI = "https://api.line.me/v2/bot/message/reply"

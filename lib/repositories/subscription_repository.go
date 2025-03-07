@@ -3,7 +3,7 @@ package repositories
 import (
 	"fmt"
 
-	"github.com/poprih/ur-monitor/internal/models"
+	"github.com/poprih/ur-monitor/lib/models"
 	"github.com/poprih/ur-monitor/pkg/db"
 	"go.mongodb.org/mongo-driver/bson"
 )

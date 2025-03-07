@@ -4,7 +4,7 @@ ur-monitor/
 │ ├── monitor.go # Monitoring function trigger endpoint
 │ └── health.go # Health check endpoint
 │
-├── internal/
+├── lib/
 │ ├── config/ # Configuration
 │ │ └── config.go # Config loader
 │ ├── handlers/ # Request handlers
