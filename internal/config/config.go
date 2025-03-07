@@ -39,14 +39,13 @@ var (
 func GetConfig() (Config, error) {
 	once.Do(func() {
 		config = Config{
-			MongoDBURI:        getEnv("MONGODB_URI", ""),
-			MongoDBDatabase:   getEnv("MONGODB_DATABASE", "ur_monitor"),
-			LineChannelSecret: getEnv("LINE_CHANNEL_SECRET", ""),
-			LineChannelToken:  getEnv("LINE_CHANNEL_TOKEN", ""),
-			URAPIKey:          getEnv("UR_API_KEY", ""),
-			MonitorInterval:   getEnvAsInt("MONITOR_INTERVAL", 60),
-			DanchiList:        getEnvAsStringSlice("DANCHI_LIST", []string{}),
-			Port:              getEnvAsInt("PORT", 8080),
+			MongoDBURI:       getEnv("MONGODB_URI", ""),
+			MongoDBDatabase:  getEnv("MONGODB_DATABASE", "ur_monitor"),
+			LineChannelToken: getEnv("LINE_CHANNEL_ACCESS_TOKEN", ""),
+			URAPIKey:         getEnv("UR_API_KEY", ""),
+			MonitorInterval:  getEnvAsInt("MONITOR_INTERVAL", 60),
+			DanchiList:       getEnvAsStringSlice("DANCHI_LIST", []string{}),
+			Port:             getEnvAsInt("PORT", 8080),
 		}
 
 		// Validate required configuration
@@ -56,7 +55,7 @@ func GetConfig() (Config, error) {
 		}
 
 		if config.LineChannelSecret == "" || config.LineChannelToken == "" {
-			err = fmt.Errorf("LINE_CHANNEL_SECRET and LINE_CHANNEL_TOKEN environment variables are required")
+			err = fmt.Errorf("LINE_CHANNEL_ACCESS_TOKEN environment variables are required")
 			return
 		}
 
