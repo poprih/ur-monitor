@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	// "github.com/poprih/ur-monitor/pkg/db"
 )
 
 type HealthStatus struct {
