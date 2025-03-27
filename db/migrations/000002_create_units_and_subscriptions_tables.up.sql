@@ -6,8 +6,8 @@ CREATE TABLE units (
 
 CREATE TABLE subscriptions (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    line_user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     unit_id INT NOT NULL REFERENCES units(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE (user_id, unit_id)
+    UNIQUE (line_user_id, unit_id)
 );
