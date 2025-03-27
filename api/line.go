@@ -77,7 +77,7 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Establish a relationship between userID and unitID in the subscriptions table
-			_, err = database.Exec("INSERT INTO subscriptions (user_id, unit_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", userID, unitID)
+			_, err = database.Exec("INSERT INTO subscriptions (line_user_id, unit_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", userID, unitID)
 			if err != nil {
 				log.Println("Error inserting subscription:", err)
 				http.Error(w, "Failed to subscribe", http.StatusInternalServerError)
