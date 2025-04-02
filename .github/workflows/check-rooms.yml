@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Call Room Check API
         run: |
-          curl -s -X GET "https://your-vercel-app.vercel.app/api/room_check" || echo "API request failed"
+          curl -s -X GET "${{ secrets.UR_CHECK_APP_URL }}/api/room_check" || echo "API request failed"
