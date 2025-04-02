@@ -1,0 +1,14 @@
+name: Check for Available Rooms
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # Run every 10 minutes
+  workflow_dispatch: # Also allow manual triggering
+
+jobs:
+  check-rooms:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Room Check API
+        run: |
+          curl -s -X GET "https://your-vercel-app.vercel.app/api/room_check" || echo "API request failed"

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/poprih/ur-monitor/db"
 	"github.com/poprih/ur-monitor/lib/models"
+	"github.com/poprih/ur-monitor/pkg/line"
 )
 
 func HandleLine(w http.ResponseWriter, r *http.Request) {
@@ -48,18 +48,35 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 	}
 	defer database.Close()
 
+	channelToken := os.Getenv("LINE_CHANNEL_ACCESS_TOKEN")
+	if channelToken == "" {
+		http.Error(w, "LINE_CHANNEL_ACCESS_TOKEN is not set", http.StatusInternalServerError)
+		return
+	}
+	
+	lineClient := line.NewClient(channelToken)
+
 	for _, e := range event.Events {
 		switch e.Type {
 		case "follow":
-			_, err = database.Exec("INSERT INTO users (line_user_id) VALUES ($1) ON CONFLICT (line_user_id) DO NOTHING", e.Source.UserID)
+			// Store both the user ID and their reply token
+			_, err = database.Exec("INSERT INTO users (line_user_id, reply_token) VALUES ($1, $2) ON CONFLICT (line_user_id) DO UPDATE SET reply_token = $2", 
+				e.Source.UserID, e.ReplyToken)
 			if err != nil {
-				log.Println("Error inserting user:", err)
+				log.Println("Error inserting/updating user:", err)
 				http.Error(w, "Failed to save user", http.StatusInternalServerError)
 				return
 			}
 			fmt.Fprint(w, "User saved successfully")
+			lineClient.SendReplyMessage(e.ReplyToken, "You have been successfully registered for UR notifications!")
 
 		case "message":
+			// Update the reply token for the user with each message
+			_, err = database.Exec("UPDATE users SET reply_token = $1 WHERE line_user_id = $2", 
+				e.ReplyToken, e.Source.UserID)
+			if err != nil {
+				log.Println("Error updating reply token:", err)
+			}					
 			var userID = e.Source.UserID
 			var urID = e.Message.Text
 
@@ -77,7 +94,7 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Establish a relationship between userID and unitID in the subscriptions table
-			_, err = database.Exec("INSERT INTO subscriptions (line_user_id, unit_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", userID, unitID)
+			_, err = database.Exec("INSERT INTO subscriptions (line_user_id, unit_id) VALUES ($1::text, $2) ON CONFLICT DO NOTHING", userID, unitID)
 			if err != nil {
 				log.Println("Error inserting subscription:", err)
 				http.Error(w, "Failed to subscribe", http.StatusInternalServerError)
@@ -85,55 +102,58 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			}
 
 			fmt.Fprint(w, "Subscription saved successfully")
-			ReplyToLineMessage(e.ReplyToken, "You have successfully subscribed to UR "+urID)
+			lineClient.SendReplyMessage(e.ReplyToken, "You have successfully subscribed to UR "+urID)
+		case "unfollow":
+			// Check if the user has any subscriptions
+			rows, err := database.Query("SELECT unit_id FROM subscriptions WHERE line_user_id = $1", e.Source.UserID)
+			if err != nil {
+				log.Println("Error querying user subscriptions:", err)
+			} else {
+				defer rows.Close()
+				
+				// Process each unit the user is subscribed to
+				for rows.Next() {
+					var unitID int
+					if err := rows.Scan(&unitID); err != nil {
+						log.Println("Error scanning unit ID:", err)
+						continue
+					}
+					
+					// Check if this unit has other subscribers
+					var count int
+					err = database.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE unit_id = $1 AND line_user_id != $2", 
+						unitID, e.Source.UserID).Scan(&count)
+					if err != nil {
+						log.Println("Error counting other subscribers:", err)
+						continue
+					}
+					
+					// If no other subscribers, delete the unit
+					if count == 0 {
+						_, err = database.Exec("DELETE FROM units WHERE id = $1", unitID)
+						if err != nil {
+							log.Println("Error deleting unit:", err)
+						} else {
+							log.Printf("Deleted unit ID %d as it has no more subscribers", unitID)
+						}
+					}
+				}
+				
+				// Delete all subscriptions for this user
+				_, err = database.Exec("DELETE FROM subscriptions WHERE line_user_id = $1", e.Source.UserID)
+				if err != nil {
+					log.Println("Error deleting user subscriptions:", err)
+				}
+			}
+			// Delete the user from the users table
+			_, err = database.Exec("DELETE FROM users WHERE line_user_id = $1", e.Source.UserID)
+		
+			if err != nil {
+				log.Println("Error deleting user:", err)
+			}			
+			
 		default:
 			http.Error(w, "Invalid event type", http.StatusBadRequest)
 		}
 	}
-}
-
-// ReplyToLineMessage sends a reply message to a LINE user using the LINE Messaging API.
-func ReplyToLineMessage(replyToken, message string) error {
-	lineAPIURL := "https://api.line.me/v2/bot/message/reply"
-	channelToken := os.Getenv("LINE_CHANNEL_ACCESS_TOKEN")
-	if channelToken == "" {
-		return fmt.Errorf("LINE_CHANNEL_ACCESS_TOKEN is not set")
-	}
-
-	payload := map[string]interface{}{
-		"replyToken": replyToken,
-		"messages": []map[string]string{
-			{
-				"type": "text",
-				"text": message,
-			},
-		},
-	}
-
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %v", err)
-	}
-
-	req, err := http.NewRequest("POST", lineAPIURL, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+channelToken)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to send request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("LINE API error: %s", string(body))
-	}
-
-	return nil
 }
