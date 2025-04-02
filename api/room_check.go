@@ -170,8 +170,50 @@ func notifySubscribedUsers(db *sql.DB, danchiID string, availableRooms []Respons
 		err = lineClient.SendPushMessage(userID, message)
 		if err != nil {
 			log.Printf("Error sending push message to user %s: %v", userID, err)
+			continue
+		}
+
+		// After successful notification, unsubscribe the user from this danchi
+		if err := unsubscribeUser(db, userID, danchiID); err != nil {
+			log.Printf("Error unsubscribing user %s from danchi %s: %v", userID, danchiID, err)
+			continue
 		}
 	}
 
+	// After all users are notified and unsubscribed, delete the danchi
+	if err := deleteDanchi(db, danchiID); err != nil {
+		log.Printf("Error deleting danchi %s: %v", danchiID, err)
+	}
+
+	return nil
+}
+
+// unsubscribeUser removes the subscription for a specific user and danchi
+func unsubscribeUser(db *sql.DB, userID string, danchiID string) error {
+	_, err := db.Exec(`
+		UPDATE subscriptions s
+		SET deleted_at = NOW()
+		FROM units u
+		WHERE s.unit_id = u.id
+		AND u.unit_name = $1
+		AND s.line_user_id = $2
+	`, danchiID, userID)
+	
+	if err != nil {
+		return fmt.Errorf("failed to unsubscribe user: %w", err)
+	}
+	return nil
+}
+
+// deleteDanchi removes the danchi from the units table
+func deleteDanchi(db *sql.DB, danchiID string) error {
+	_, err := db.Exec(`
+		DELETE FROM units
+		WHERE unit_name = $1
+	`, danchiID)
+	
+	if err != nil {
+		return fmt.Errorf("failed to delete danchi: %w", err)
+	}
 	return nil
 }
