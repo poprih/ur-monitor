@@ -2,13 +2,19 @@ name: Check for Available Rooms
 
 on:
   schedule:
-    - cron: "*/10 * * * *" # Run every 10 minutes
-  workflow_dispatch: # Also allow manual triggering
+    - cron: "*/10 9-19 * * *" # every 10 minutes from 9:00 to 19:50
+  workflow_dispatch: # allow manual triggering
 
 jobs:
   check-rooms:
     runs-on: ubuntu-latest
     steps:
+      - name: Record start time
+        run: echo "Job started at $(date)"
+
       - name: Call Room Check API
         run: |
           curl -s -X GET "${{ secrets.UR_CHECK_APP_URL }}/api/room_check" || echo "API request failed"
+
+      - name: Record end time
+        run: echo "Job completed at $(date)"

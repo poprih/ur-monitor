@@ -1,0 +1,9 @@
+DELETE FROM prefectures 
+WHERE code IN (
+    'HOKKAIDO', 'MIYAGI',
+    'TOKYO', 'KANAGAWA', 'CHIBA', 'SAITAMA', 'IBARAKI',
+    'AICHI', 'MIE', 'GIFU', 'SHIZUOKA',
+    'OSAKA', 'KYOTO', 'HYOGO', 'SHIGA', 'NARA', 'WAKAYAMA',
+    'OKAYAMA', 'HIROSHIMA', 'YAMAGUCHI',
+    'FUKUOKA'
+); 
