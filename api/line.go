@@ -78,19 +78,15 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 				log.Println("Error updating reply token:", err)
 			}					
 			var userID = e.Source.UserID
-			var urID = e.Message.Text
+			var unitName = e.Message.Text
 
 			// Check if urID exists in the units table
 			var unitID int
-			err = database.QueryRow("SELECT id FROM units WHERE unit_name = $1", urID).Scan(&unitID)
+			err = database.QueryRow("SELECT id FROM units WHERE unit_name ILIKE $1", unitName).Scan(&unitID)
 			if err != nil {
-				// If not found, insert a new record into the units table
-				err = database.QueryRow("INSERT INTO units (unit_name) VALUES ($1) RETURNING id", urID).Scan(&unitID)
-				if err != nil {
-					log.Println("Error inserting unit:", err)
-					http.Error(w, "Failed to create unit", http.StatusInternalServerError)
-					return
-				}
+				log.Println("Error querying unit:", err)
+				http.Error(w, "Failed to query unit", http.StatusInternalServerError)
+				return
 			}
 
 			// Establish a relationship between userID and unitID in the subscriptions table
@@ -101,8 +97,14 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			_, err = database.Exec("UPDATE units SET is_subscribed = TRUE WHERE id = $1", unitID)
+			if err != nil {
+				log.Println("Error updating unit subscription status:", err)
+				http.Error(w, "Failed to update unit subscription status", http.StatusInternalServerError)
+				return
+			}
 			fmt.Fprint(w, "Subscription saved successfully")
-			lineClient.SendReplyMessage(e.ReplyToken, "You have successfully subscribed to UR "+urID)
+			lineClient.SendReplyMessage(e.ReplyToken, "You have successfully subscribed to UR "+ unitName)
 		case "unfollow":
 			// Check if the user has any subscriptions
 			rows, err := database.Query("SELECT unit_id FROM subscriptions WHERE line_user_id = $1", e.Source.UserID)
@@ -128,24 +130,24 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 						continue
 					}
 					
-					// If no other subscribers, delete the unit
+					// If no other subscribers, set the unit subscription status to false
 					if count == 0 {
-						_, err = database.Exec("DELETE FROM units WHERE id = $1", unitID)
+						_, err = database.Exec("UPDATE units SET is_subscribed = FALSE WHERE id = $1", unitID)
 						if err != nil {
-							log.Println("Error deleting unit:", err)
+							log.Println("Error updating unit subscription status:", err)
 						} else {
-							log.Printf("Deleted unit ID %d as it has no more subscribers", unitID)
+							log.Printf("Updated unit ID %d as it has no more subscribers", unitID)
 						}
 					}
 				}
 				
-				// Delete all subscriptions for this user
+					// Delete all subscriptions for this user 
 				_, err = database.Exec("DELETE FROM subscriptions WHERE line_user_id = $1", e.Source.UserID)
 				if err != nil {
 					log.Println("Error deleting user subscriptions:", err)
 				}
 			}
-			// Delete the user from the users table
+				// Delete the user from the users table
 			_, err = database.Exec("DELETE FROM users WHERE line_user_id = $1", e.Source.UserID)
 		
 			if err != nil {
