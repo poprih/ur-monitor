@@ -1,0 +1,4 @@
+ALTER TABLE units
+DROP CONSTRAINT IF EXISTS fk_area,
+DROP INDEX IF EXISTS idx_units_area_id,
+DROP COLUMN IF EXISTS area_id; 
