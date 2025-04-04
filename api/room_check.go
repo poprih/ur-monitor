@@ -23,6 +23,10 @@ type URResponse struct {
 
 // CheckRoomsHandler is an HTTP handler that checks for available units
 func CheckRoomsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("Authorization") != "Bearer " + os.Getenv("CHECK_ROOMS_SECRET") {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 	// Only allow scheduled requests (from GitHub Actions)
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
