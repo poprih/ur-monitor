@@ -1,0 +1,5 @@
+ALTER TABLE units
+DROP COLUMN image,
+DROP COLUMN url,
+DROP COLUMN rent,
+DROP COLUMN common_fee; 

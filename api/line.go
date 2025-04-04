@@ -54,7 +54,7 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	lineClient := line.NewClient(channelToken)
+	lineClient := line.NewLineClient(channelToken)
 
 	for _, e := range event.Events {
 		switch e.Type {
@@ -68,7 +68,7 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			fmt.Fprint(w, "User saved successfully")
-			lineClient.SendReplyMessage(e.ReplyToken, "You have been successfully registered for UR notifications!")
+			lineClient.SendReplyMessage(e.ReplyToken, line.MessageTemplates.WelcomeMessage)
 
 		case "message":
 			// Update the reply token for the user with each message
@@ -85,6 +85,7 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			err = database.QueryRow("SELECT id FROM units WHERE unit_name ILIKE $1", unitName).Scan(&unitID)
 			if err != nil {
 				log.Println("Error querying unit:", err)
+				lineClient.SendReplyMessage(e.ReplyToken, line.MessageTemplates.InvalidUnitName)
 				http.Error(w, "Failed to query unit", http.StatusInternalServerError)
 				return
 			}
@@ -93,6 +94,7 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			_, err = database.Exec("INSERT INTO subscriptions (line_user_id, unit_id) VALUES ($1::text, $2) ON CONFLICT DO NOTHING", userID, unitID)
 			if err != nil {
 				log.Println("Error inserting subscription:", err)
+				lineClient.SendReplyMessage(e.ReplyToken, fmt.Sprintf(line.MessageTemplates.SubscriptionError, unitName))
 				http.Error(w, "Failed to subscribe", http.StatusInternalServerError)
 				return
 			}
@@ -100,11 +102,12 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			_, err = database.Exec("UPDATE units SET is_subscribed = TRUE WHERE id = $1", unitID)
 			if err != nil {
 				log.Println("Error updating unit subscription status:", err)
+				lineClient.SendReplyMessage(e.ReplyToken, fmt.Sprintf(line.MessageTemplates.SubscriptionError, unitName))
 				http.Error(w, "Failed to update unit subscription status", http.StatusInternalServerError)
 				return
 			}
 			fmt.Fprint(w, "Subscription saved successfully")
-			lineClient.SendReplyMessage(e.ReplyToken, "You have successfully subscribed to UR "+ unitName)
+			lineClient.SendReplyMessage(e.ReplyToken, fmt.Sprintf(line.MessageTemplates.SubscriptionSuccess, unitName))
 		case "unfollow":
 			// Check if the user has any subscriptions
 			rows, err := database.Query("SELECT unit_id FROM subscriptions WHERE line_user_id = $1", e.Source.UserID)

@@ -158,13 +158,28 @@ func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) er
 
 	// Prepare notification message
 	var messageBuilder strings.Builder
-	messageBuilder.WriteString(fmt.Sprintf("🔔 *Notification for %s*\n\n", unitName))
-	messageBuilder.WriteString(fmt.Sprintf("Found %d available units:\n", response.Count))
-	messageBuilder.WriteString("Available room types:\n")
+	messageBuilder.WriteString(fmt.Sprintf("🔔 *UR %s - 空室通知 / Vacancy Notification*\n\n", unitName))
+	messageBuilder.WriteString(fmt.Sprintf("空室数 / Available rooms: %d\n", response.Count))
+	messageBuilder.WriteString("\n空室タイプ / Available room types:\n")
 	for _, roomType := range response.Room {
 		messageBuilder.WriteString(fmt.Sprintf("- %s\n", roomType))
 	}
-	messageBuilder.WriteString("\n⚠️ Please visit the property as soon as possible to apply if interested, as others may apply before you!")
+
+	// Get the property URL from the database
+	var propertyURL string
+	err = db.QueryRow("SELECT url FROM units WHERE unit_name = $1", unitName).Scan(&propertyURL)
+	if err != nil {
+		log.Printf("Error getting property URL: %v", err)
+	} else {
+		fullURL := fmt.Sprintf("https://www.ur-net.go.jp%s", propertyURL)
+		messageBuilder.WriteString(fmt.Sprintf("\n物件詳細 / Property details: %s\n", fullURL))
+	}
+
+	messageBuilder.WriteString("\n⚠️ ご注意 / Important:\n")
+	messageBuilder.WriteString("- 空室は先着順です。お早めにご応募ください。\n")
+	messageBuilder.WriteString("- この物件の通知は自動的に解除されます。\n\n")
+	messageBuilder.WriteString("- Vacancies are filled on a first-come, first-served basis. Please apply as soon as possible.\n")
+	messageBuilder.WriteString("- This property notification will be automatically unsubscribed.\n")
 
 	message := messageBuilder.String()
 
@@ -173,7 +188,7 @@ func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) er
 		return fmt.Errorf("LINE_CHANNEL_ACCESS_TOKEN is not set")
 	}
 		
-	lineClient := line.NewClient(channelToken)
+	lineClient := line.NewLineClient(channelToken)
 
 	// Send notification to each subscribed user
 	for rows.Next() {

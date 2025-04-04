@@ -8,22 +8,22 @@ import (
 	"net/http"
 )
 
-// Client represents a LINE messaging API client
-type Client struct {
+// LineClient represents a LINE messaging API client
+type LineClient struct {
 	channelToken string
 	httpClient   *http.Client
 }
 
 // NewClient creates a new LINE client
-func NewClient(channelToken string) *Client {
-	return &Client{
+func NewLineClient(channelToken string) *LineClient {
+	return &LineClient{
 		channelToken: channelToken,
 		httpClient:   &http.Client{},
 	}
 }
 
 // SendPushMessage sends a push message to a LINE user
-func (c *Client) SendPushMessage(userID, message string) error {
+func (c *LineClient) SendPushMessage(userID, message string) error {
 	payload := map[string]interface{}{
 		"to": userID,
 		"messages": []map[string]string{
@@ -38,7 +38,7 @@ func (c *Client) SendPushMessage(userID, message string) error {
 }
 
 // SendReplyMessage sends a reply message to a LINE user
-func (c *Client) SendReplyMessage(replyToken, message string) error {
+func (c *LineClient) SendReplyMessage(replyToken, message string) error {
 	payload := map[string]interface{}{
 		"replyToken": replyToken,
 		"messages": []map[string]string{
@@ -53,7 +53,7 @@ func (c *Client) SendReplyMessage(replyToken, message string) error {
 }
 
 // sendRequest sends a request to the LINE API
-func (c *Client) sendRequest(url string, payload interface{}) error {
+func (c *LineClient) sendRequest(url string, payload interface{}) error {
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %v", err)

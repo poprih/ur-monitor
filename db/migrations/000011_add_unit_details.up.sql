@@ -1,0 +1,5 @@
+ALTER TABLE units
+ADD COLUMN image TEXT,
+ADD COLUMN url TEXT,
+ADD COLUMN rent TEXT,
+ADD COLUMN common_fee TEXT; 
