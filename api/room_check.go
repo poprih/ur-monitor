@@ -15,12 +15,10 @@ import (
 	"github.com/poprih/ur-monitor/pkg/line"
 )
 
-// ResponseItem represents a property unit from the UR API response
-type ResponseItem struct {
-	Name           string `json:"name"`
-	Floortype      string `json:"floor"`
-	RentNormal     string `json:"rent_normal"`
-	RoomDetailLink string `json:"roomDetailLink"`
+// URResponse represents the response from UR API
+type URResponse struct {
+	Count int      `json:"count"`
+	Room  []string `json:"room"`
 }
 
 // CheckRoomsHandler is an HTTP handler that checks for available units
@@ -52,40 +50,51 @@ func checkAndNotifyAvailableRooms() error {
 
 	// Get all units that have active subscriptions
 	rows, err := database.Query(`
-		SELECT DISTINCT u.unit_name 
+		SELECT DISTINCT u.unit_name, u.unit_code 
 		FROM units u
 		JOIN subscriptions s ON u.id = s.unit_id
 		JOIN users usr ON s.line_user_id = usr.line_user_id
-		WHERE s.deleted_at IS NULL AND usr.active = true
+		WHERE s.deleted_at IS NULL AND usr.active = true AND u.is_subscribed = true
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to query subscribed units: %w", err)
 	}
 	defer rows.Close()
 
-	// Process each unit (danchi)
+	// Process each unit
 	for rows.Next() {
-		var danchiID string
-		if err := rows.Scan(&danchiID); err != nil {
+		var unitName, unitCode string
+		if err := rows.Scan(&unitName, &unitCode); err != nil {
 			log.Printf("Error scanning row: %v", err)
 			continue
 		}
 
-		// Check if this danchi has available rooms
-		availableRooms, err := checkAvailableRooms(danchiID)
+		// Parse unit_code to get required parameters
+		parts := strings.Split(unitCode, "_")
+		if len(parts) != 2 {
+			log.Printf("Invalid unit_code format: %s", unitCode)
+			continue
+		}
+
+		shisya := parts[0]
+		danchi := parts[1][:3]
+		shikibetu := parts[1][3:]
+
+		// Check if this unit has available rooms
+		response, err := checkAvailableRooms(shisya, danchi, shikibetu)
 		if err != nil {
-			log.Printf("Error fetching data for danchi %s: %v", danchiID, err)
+			log.Printf("Error fetching data for unit %s: %v", unitName, err)
 			continue
 		}
 
 		// If rooms are available, notify subscribed users
-		if len(availableRooms) > 0 {
-			err = notifySubscribedUsers(database, danchiID, availableRooms)
+		if response.Count > 0 {
+			err = notifySubscribedUsers(database, unitName, response)
 			if err != nil {
-				log.Printf("Error notifying users for danchi %s: %v", danchiID, err)
+				log.Printf("Error notifying users for unit %s: %v", unitName, err)
 			}
 		} else {
-			log.Printf("No available rooms for danchi %s", danchiID)
+			log.Printf("No available rooms for unit %s", unitName)
 		}
 
 		// Add a small delay to avoid overwhelming the UR API
@@ -96,13 +105,26 @@ func checkAndNotifyAvailableRooms() error {
 }
 
 // checkAvailableRooms fetches available room data from the UR API
-func checkAvailableRooms(danchi string) ([]ResponseItem, error) {
-	url := "https://chintai.r6.ur-net.go.jp/chintai/api/bukken/detail/detail_bukken_room/"
-	postData := fmt.Sprintf("rent_low=&rent_high=&floorspace_low=&floorspace_high=&shisya=80&danchi=%s&shikibetu=0&newBukkenRoom=&orderByField=0&orderBySort=0&pageIndex=0&pageIndex=0&sp=", danchi)
+func checkAvailableRooms(shisya, danchi, shikibetu string) (*URResponse, error) {
+	baseURL := os.Getenv("UR_API_BASE_URL")
+	apiPath := os.Getenv("UR_UNIT_ROOM_CHECK_PATH")
+	if baseURL == "" {
+		return nil, fmt.Errorf("UR_API_BASE_URL is not set")
+	}
 
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postData)))
+	url := fmt.Sprintf("%s%s", baseURL, apiPath)
+	postData := fmt.Sprintf("shisya=%s&danchi=%s&shikibetu=%s", shisya, danchi, shikibetu)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(postData)))
+	if err != nil {
+		return nil, err
+	}
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 	req.Header.Set("User-Agent", "Mozilla/5.0")
+	req.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
+	req.Header.Set("Origin", "https://www.ur-net.go.jp")
+	req.Header.Set("Referer", "https://www.ur-net.go.jp/")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -111,29 +133,24 @@ func checkAvailableRooms(danchi string) ([]ResponseItem, error) {
 	}
 	defer resp.Body.Close()
 
-	var data []ResponseItem
+	var data URResponse
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, fmt.Errorf("failed to decode JSON response: %w", err)
 	}
 
-	// Complete the room detail links with the domain
-	for i := range data {
-		data[i].RoomDetailLink = "https://www.ur-net.go.jp" + data[i].RoomDetailLink
-	}
-
-	return data, nil
+	return &data, nil
 }
 
-// notifySubscribedUsers notifies all users subscribed to a particular danchi
-func notifySubscribedUsers(db *sql.DB, danchiID string, availableRooms []ResponseItem) error {
-	// Find all users subscribed to this danchi
+// notifySubscribedUsers notifies all users subscribed to a particular unit
+func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) error {
+	// Find all users subscribed to this unit
 	rows, err := db.Query(`
 		SELECT usr.line_user_id, usr.reply_token
 		FROM users usr
 		JOIN subscriptions s ON usr.line_user_id = s.line_user_id
 		JOIN units u ON s.unit_id = u.id
 		WHERE u.unit_name = $1 AND s.deleted_at IS NULL AND usr.active = true
-	`, danchiID)
+	`, unitName)
 	if err != nil {
 		return fmt.Errorf("failed to query subscribed users: %w", err)
 	}
@@ -141,13 +158,13 @@ func notifySubscribedUsers(db *sql.DB, danchiID string, availableRooms []Respons
 
 	// Prepare notification message
 	var messageBuilder strings.Builder
-	messageBuilder.WriteString(fmt.Sprintf("🔔 *Notification for Danchi %s*\n\n", danchiID))
-	messageBuilder.WriteString(fmt.Sprintf("Found %d available units:\n\n", len(availableRooms)))
-
-	for _, room := range availableRooms {
-		messageBuilder.WriteString(fmt.Sprintf("🏠 Name: %s\n🏢 Floor: %s\n💰 Rent: %s\n🔗 Link: %s\n\n",
-			room.Name, room.Floortype, room.RentNormal, room.RoomDetailLink))
+	messageBuilder.WriteString(fmt.Sprintf("🔔 *Notification for %s*\n\n", unitName))
+	messageBuilder.WriteString(fmt.Sprintf("Found %d available units:\n", response.Count))
+	messageBuilder.WriteString("Available room types:\n")
+	for _, roomType := range response.Room {
+		messageBuilder.WriteString(fmt.Sprintf("- %s\n", roomType))
 	}
+	messageBuilder.WriteString("\n⚠️ Please visit the property as soon as possible to apply if interested, as others may apply before you!")
 
 	message := messageBuilder.String()
 
@@ -173,23 +190,23 @@ func notifySubscribedUsers(db *sql.DB, danchiID string, availableRooms []Respons
 			continue
 		}
 
-		// After successful notification, unsubscribe the user from this danchi
-		if err := unsubscribeUser(db, userID, danchiID); err != nil {
-			log.Printf("Error unsubscribing user %s from danchi %s: %v", userID, danchiID, err)
+		// After successful notification, unsubscribe the user from this unit
+		if err := unsubscribeUser(db, userID, unitName); err != nil {
+			log.Printf("Error unsubscribing user %s from unit %s: %v", userID, unitName, err)
 			continue
 		}
 	}
 
-	// After all users are notified and unsubscribed, delete the danchi
-	if err := deleteDanchi(db, danchiID); err != nil {
-		log.Printf("Error deleting danchi %s: %v", danchiID, err)
+	// Update unit's is_subscribed status
+	if err := updateUnitSubscriptionStatus(db, unitName); err != nil {
+		log.Printf("Error updating unit subscription status for %s: %v", unitName, err)
 	}
 
 	return nil
 }
 
-// unsubscribeUser removes the subscription for a specific user and danchi
-func unsubscribeUser(db *sql.DB, userID string, danchiID string) error {
+// unsubscribeUser removes the subscription for a specific user and unit
+func unsubscribeUser(db *sql.DB, userID string, unitName string) error {
 	_, err := db.Exec(`
 		UPDATE subscriptions s
 		SET deleted_at = NOW()
@@ -197,7 +214,7 @@ func unsubscribeUser(db *sql.DB, userID string, danchiID string) error {
 		WHERE s.unit_id = u.id
 		AND u.unit_name = $1
 		AND s.line_user_id = $2
-	`, danchiID, userID)
+	`, unitName, userID)
 	
 	if err != nil {
 		return fmt.Errorf("failed to unsubscribe user: %w", err)
@@ -205,15 +222,16 @@ func unsubscribeUser(db *sql.DB, userID string, danchiID string) error {
 	return nil
 }
 
-// deleteDanchi removes the danchi from the units table
-func deleteDanchi(db *sql.DB, danchiID string) error {
+// updateUnitSubscriptionStatus sets is_subscribed to false for the unit
+func updateUnitSubscriptionStatus(db *sql.DB, unitName string) error {
 	_, err := db.Exec(`
-		DELETE FROM units
+		UPDATE units
+		SET is_subscribed = false
 		WHERE unit_name = $1
-	`, danchiID)
+	`, unitName)
 	
 	if err != nil {
-		return fmt.Errorf("failed to delete danchi: %w", err)
+		return fmt.Errorf("failed to update unit subscription status: %w", err)
 	}
 	return nil
 }
