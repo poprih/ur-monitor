@@ -58,7 +58,7 @@ func checkAndNotifyAvailableRooms() error {
 		FROM units u
 		JOIN subscriptions s ON u.id = s.unit_id
 		JOIN users usr ON s.line_user_id = usr.line_user_id
-		WHERE s.deleted_at IS NULL AND usr.active = true AND u.is_subscribed = true
+		WHERE s.deleted_at IS NULL
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to query subscribed units: %w", err)
@@ -153,7 +153,7 @@ func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) er
 		FROM users usr
 		JOIN subscriptions s ON usr.line_user_id = s.line_user_id
 		JOIN units u ON s.unit_id = u.id
-		WHERE u.unit_name = $1 AND s.deleted_at IS NULL AND usr.active = true
+		WHERE u.unit_name = $1 AND s.deleted_at IS NULL
 	`, unitName)
 	if err != nil {
 		return fmt.Errorf("failed to query subscribed users: %w", err)
@@ -216,11 +216,6 @@ func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) er
 		}
 	}
 
-	// Update unit's is_subscribed status
-	if err := updateUnitSubscriptionStatus(db, unitName); err != nil {
-		log.Printf("Error updating unit subscription status for %s: %v", unitName, err)
-	}
-
 	return nil
 }
 
@@ -237,20 +232,6 @@ func unsubscribeUser(db *sql.DB, userID string, unitName string) error {
 	
 	if err != nil {
 		return fmt.Errorf("failed to unsubscribe user: %w", err)
-	}
-	return nil
-}
-
-// updateUnitSubscriptionStatus sets is_subscribed to false for the unit
-func updateUnitSubscriptionStatus(db *sql.DB, unitName string) error {
-	_, err := db.Exec(`
-		UPDATE units
-		SET is_subscribed = false
-		WHERE unit_name = $1
-	`, unitName)
-	
-	if err != nil {
-		return fmt.Errorf("failed to update unit subscription status: %w", err)
 	}
 	return nil
 }

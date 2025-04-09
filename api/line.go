@@ -92,19 +92,11 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// Establish a relationship between userID and unitID in the subscriptions table
-			_, err = database.Exec("INSERT INTO subscriptions (line_user_id, unit_id) VALUES ($1::text, $2) ON CONFLICT DO NOTHING", userID, unitID)
+			_, err = database.Exec("INSERT INTO subscriptions (line_user_id, unit_id, deleted_at) VALUES ($1::text, $2, NULL) ON CONFLICT (line_user_id, unit_id) DO UPDATE SET deleted_at = NULL", userID, unitID)
 			if err != nil {
 				log.Println("Error inserting subscription:", err)
 				lineClient.SendReplyMessage(e.ReplyToken, line.FormatBilingualMessage(line.MessageTemplates.SubscriptionError, unitName))
 				http.Error(w, "Failed to subscribe", http.StatusInternalServerError)
-				return
-			}
-
-			_, err = database.Exec("UPDATE units SET is_subscribed = TRUE WHERE id = $1", unitID)
-			if err != nil {
-				log.Println("Error updating unit subscription status:", err)
-				lineClient.SendReplyMessage(e.ReplyToken, line.FormatBilingualMessage(line.MessageTemplates.SubscriptionError, unitName))
-				http.Error(w, "Failed to update unit subscription status", http.StatusInternalServerError)
 				return
 			}
 			fmt.Fprint(w, "Subscription saved successfully")
