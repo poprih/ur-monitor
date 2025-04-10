@@ -81,6 +81,29 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			var userID = e.Source.UserID
 			var unitName = strings.TrimSpace(e.Message.Text)
 
+			var isPremium bool
+			var subscriptionCount int
+			err = database.QueryRow("SELECT is_premium FROM users WHERE line_user_id = $1", userID).Scan(&isPremium)
+			if err != nil {
+				log.Println("Error checking premium status:", err)
+				http.Error(w, "Failed to check user status", http.StatusInternalServerError)
+				return
+			}
+
+			if !isPremium {
+				err = database.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE line_user_id = $1 AND deleted_at IS NULL", userID).Scan(&subscriptionCount)
+				if err != nil {
+					log.Println("Error counting subscriptions:", err)
+					http.Error(w, "Failed to check subscription count", http.StatusInternalServerError)
+					return
+				}
+
+				if subscriptionCount >= 1 {
+					lineClient.SendReplyMessage(e.ReplyToken, line.MessageTemplates.SubscriptionLimitReached)
+					return
+				}
+			}
+
 			// Check if urID exists in the units table
 			var unitID int
 			err = database.QueryRow("SELECT id FROM units WHERE unit_name ILIKE $1", unitName).Scan(&unitID)

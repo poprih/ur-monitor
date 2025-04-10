@@ -13,6 +13,7 @@ var MessageTemplates = struct {
 	UnsubscribeError         string
 	InvalidUnitName          string
 	DatabaseError           string
+	SubscriptionLimitReached string
 }{
 	WelcomeMessage: `Thank you for following us! 
 
@@ -43,6 +44,9 @@ UR %sの通知登録解除に失敗しました。しばらくしてから再度
 	DatabaseError: `An error occurred while processing your request. Please try again later.
 
 処理中にエラーが発生しました。しばらくしてから再度お試しください。`,
+	SubscriptionLimitReached: `Currently, each user can only subscribe to notifications for one property at a time.
+
+現在、お一人様一つの物件のみ空室通知を登録できます。`,
 }
 
 // FormatBilingualMessage formats a bilingual message template with the given arguments.
