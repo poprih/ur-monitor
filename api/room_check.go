@@ -149,7 +149,7 @@ func checkAvailableRooms(shisya, danchi, shikibetu string) (*URResponse, error) 
 func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) error {
 	// Find all users subscribed to this unit
 	rows, err := db.Query(`
-		SELECT usr.line_user_id, usr.reply_token, s.room_type
+		SELECT usr.line_user_id, usr.reply_token, s.room_types
 		FROM users usr
 		JOIN subscriptions s ON usr.line_user_id = s.line_user_id
 		JOIN units u ON s.unit_id = u.id
@@ -169,22 +169,37 @@ func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) er
 
 	// Send notification to each subscribed user
 	for rows.Next() {
-		var userID, replyToken, subscribedRoomType sql.NullString
-		if err := rows.Scan(&userID, &replyToken, &subscribedRoomType); err != nil {
+		var userID, replyToken string
+		var subscribedRoomTypesJSON []byte
+		if err := rows.Scan(&userID, &replyToken, &subscribedRoomTypesJSON); err != nil {
 			log.Printf("Error scanning user row: %v", err)
 			continue
 		}
 
-		// Check if the user's subscribed room type matches any available rooms
+		// Parse subscribed room types
+		var subscribedRoomTypes []string
+		if len(subscribedRoomTypesJSON) > 0 {
+			if err := json.Unmarshal(subscribedRoomTypesJSON, &subscribedRoomTypes); err != nil {
+				log.Printf("Error parsing room types JSON: %v", err)
+				continue
+			}
+		}
+
+		// Check if any of the user's subscribed room types match available rooms
 		shouldNotify := false
-		if !subscribedRoomType.Valid || subscribedRoomType.String == "" {
-			// If no room type specified, notify for any availability
+		if len(subscribedRoomTypes) == 0 {
+			// If no room types specified, notify for any availability
 			shouldNotify = true
 		} else {
-			// Check if the subscribed room type is available
-			for _, availableRoom := range response.Room {
-				if availableRoom == subscribedRoomType.String {
-					shouldNotify = true
+			// Check if any of the subscribed room types are available
+			for _, subscribedRoomType := range subscribedRoomTypes {
+				for _, availableRoom := range response.Room {
+					if availableRoom == subscribedRoomType {
+						shouldNotify = true
+						break
+					}
+				}
+				if shouldNotify {
 					break
 				}
 			}
@@ -222,15 +237,15 @@ func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) er
 		message := messageBuilder.String()
 
 		// Send push notification using LINE API
-		err = lineClient.SendPushMessage(userID.String, message)
+		err = lineClient.SendPushMessage(userID, message)
 		if err != nil {
-			log.Printf("Error sending push message to user %s: %v", userID.String, err)
+			log.Printf("Error sending push message to user %s: %v", userID, err)
 			continue
 		}
 
 		// After successful notification, unsubscribe the user from this unit
-		if err := unsubscribeUser(db, userID.String, unitName); err != nil {
-			log.Printf("Error unsubscribing user %s from unit %s: %v", userID.String, unitName, err)
+		if err := unsubscribeUser(db, userID, unitName); err != nil {
+			log.Printf("Error unsubscribing user %s from unit %s: %v", userID, unitName, err)
 			continue
 		}
 	}

@@ -1,1 +1,1 @@
-ALTER TABLE subscriptions DROP COLUMN room_type; 
+ALTER TABLE subscriptions DROP COLUMN room_types; 

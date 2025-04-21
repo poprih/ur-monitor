@@ -83,15 +83,16 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			// Parse subscription conditions from message
 			parts := strings.Split(strings.TrimSpace(e.Message.Text), ":")
 			var unitName string
-			var roomType string
+			var roomTypes []string
 			
 			if len(parts) == 1 {
 				unitName = parts[0]
 			} else if len(parts) == 2 {
 				unitName = strings.TrimSpace(parts[0])
-				roomType = strings.TrimSpace(parts[1])
+				// Split room types by "&"
+				roomTypes = strings.Split(strings.TrimSpace(parts[1]), "&")
 			} else {
-				lineClient.SendReplyMessage(e.ReplyToken, "正しい形式で入力してください。\n例：マンション名 または マンション名:3LDK")
+				lineClient.SendReplyMessage(e.ReplyToken, "正しい形式で入力してください。\n例：マンション名 または マンション名:3LDK&4LDK")
 				return
 			}
 
@@ -128,13 +129,21 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			// Insert subscription with room type
+			// Convert room types to JSON array
+			roomTypesJSON, err := json.Marshal(roomTypes)
+			if err != nil {
+				log.Println("Error marshaling room types:", err)
+				http.Error(w, "Failed to process subscription conditions", http.StatusInternalServerError)
+				return
+			}
+
+			// Insert subscription with room types
 			_, err = database.Exec(`
-				INSERT INTO subscriptions (line_user_id, unit_id, room_type, deleted_at) 
+				INSERT INTO subscriptions (line_user_id, unit_id, room_types, deleted_at) 
 				VALUES ($1::text, $2, $3, NULL) 
 				ON CONFLICT (line_user_id, unit_id) 
-				DO UPDATE SET room_type = $3, deleted_at = NULL`, 
-				userID, unitID, roomType)
+				DO UPDATE SET room_types = $3, deleted_at = NULL`, 
+				userID, unitID, roomTypesJSON)
 			if err != nil {
 				log.Println("Error inserting subscription:", err)
 				lineClient.SendReplyMessage(e.ReplyToken, line.FormatBilingualMessage(line.MessageTemplates.SubscriptionError, unitName))
@@ -144,10 +153,10 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 
 			// Create confirmation message
 			var confirmationMsg string
-			if roomType != "" {
+			if len(roomTypes) > 0 {
 				confirmationMsg = fmt.Sprintf("%s\n指定された間取り: %s", 
 					line.FormatBilingualMessage(line.MessageTemplates.SubscriptionSuccess, unitName),
-					roomType)
+					strings.Join(roomTypes, "、"))
 			} else {
 				confirmationMsg = line.FormatBilingualMessage(line.MessageTemplates.SubscriptionSuccess, unitName)
 			}
