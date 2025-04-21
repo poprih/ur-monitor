@@ -79,7 +79,21 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 				log.Println("Error updating reply token:", err)
 			}					
 			var userID = e.Source.UserID
-			var unitName = strings.TrimSpace(e.Message.Text)
+			
+			// Parse subscription conditions from message
+			parts := strings.Split(strings.TrimSpace(e.Message.Text), ":")
+			var unitName string
+			var roomType string
+			
+			if len(parts) == 1 {
+				unitName = parts[0]
+			} else if len(parts) == 2 {
+				unitName = strings.TrimSpace(parts[0])
+				roomType = strings.TrimSpace(parts[1])
+			} else {
+				lineClient.SendReplyMessage(e.ReplyToken, "正しい形式で入力してください。\n例：マンション名 または マンション名:3LDK")
+				return
+			}
 
 			var isPremium bool
 			var subscriptionCount int
@@ -114,16 +128,31 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			// Establish a relationship between userID and unitID in the subscriptions table
-			_, err = database.Exec("INSERT INTO subscriptions (line_user_id, unit_id, deleted_at) VALUES ($1::text, $2, NULL) ON CONFLICT (line_user_id, unit_id) DO UPDATE SET deleted_at = NULL", userID, unitID)
+			// Insert subscription with room type
+			_, err = database.Exec(`
+				INSERT INTO subscriptions (line_user_id, unit_id, room_type, deleted_at) 
+				VALUES ($1::text, $2, $3, NULL) 
+				ON CONFLICT (line_user_id, unit_id) 
+				DO UPDATE SET room_type = $3, deleted_at = NULL`, 
+				userID, unitID, roomType)
 			if err != nil {
 				log.Println("Error inserting subscription:", err)
 				lineClient.SendReplyMessage(e.ReplyToken, line.FormatBilingualMessage(line.MessageTemplates.SubscriptionError, unitName))
 				http.Error(w, "Failed to subscribe", http.StatusInternalServerError)
 				return
 			}
-			fmt.Fprint(w, "Subscription saved successfully")
-			lineClient.SendReplyMessage(e.ReplyToken, line.FormatBilingualMessage(line.MessageTemplates.SubscriptionSuccess, unitName))
+
+			// Create confirmation message
+			var confirmationMsg string
+			if roomType != "" {
+				confirmationMsg = fmt.Sprintf("%s\n指定された間取り: %s", 
+					line.FormatBilingualMessage(line.MessageTemplates.SubscriptionSuccess, unitName),
+					roomType)
+			} else {
+				confirmationMsg = line.FormatBilingualMessage(line.MessageTemplates.SubscriptionSuccess, unitName)
+			}
+			
+			lineClient.SendReplyMessage(e.ReplyToken, confirmationMsg)
 		case "unfollow":
 			// Check if the user has any subscriptions
 			rows, err := database.Query("SELECT unit_id FROM subscriptions WHERE line_user_id = $1", e.Source.UserID)

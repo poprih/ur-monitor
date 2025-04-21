@@ -149,7 +149,7 @@ func checkAvailableRooms(shisya, danchi, shikibetu string) (*URResponse, error) 
 func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) error {
 	// Find all users subscribed to this unit
 	rows, err := db.Query(`
-		SELECT usr.line_user_id, usr.reply_token
+		SELECT usr.line_user_id, usr.reply_token, s.room_type
 		FROM users usr
 		JOIN subscriptions s ON usr.line_user_id = s.line_user_id
 		JOIN units u ON s.unit_id = u.id
@@ -160,58 +160,77 @@ func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) er
 	}
 	defer rows.Close()
 
-	// Prepare notification message
-	var messageBuilder strings.Builder
-	messageBuilder.WriteString(fmt.Sprintf("🔔 *UR %s - 空室通知 / Vacancy Notification*\n\n", unitName))
-	messageBuilder.WriteString(fmt.Sprintf("空室数 / Available rooms: %d\n", response.Count))
-	messageBuilder.WriteString("\n空室タイプ / Available room types:\n")
-	for _, roomType := range response.Room {
-		messageBuilder.WriteString(fmt.Sprintf("- %s\n", roomType))
-	}
-
-	// Get the property URL from the database
-	var propertyURL string
-	err = db.QueryRow("SELECT url FROM units WHERE unit_name = $1", unitName).Scan(&propertyURL)
-	if err != nil {
-		log.Printf("Error getting property URL: %v", err)
-	} else {
-		fullURL := fmt.Sprintf("https://www.ur-net.go.jp%s", propertyURL)
-		messageBuilder.WriteString(fmt.Sprintf("\n物件詳細 / Property details: %s\n", fullURL))
-	}
-
-	messageBuilder.WriteString("\n⚠️ ご注意 / Important:\n")
-	messageBuilder.WriteString("- 空室は先着順です。お早めにご応募ください。\n")
-	messageBuilder.WriteString("- この物件の通知は自動的に解除されます。\n\n")
-	messageBuilder.WriteString("- Vacancies are filled on a first-come, first-served basis. Please apply as soon as possible.\n")
-	messageBuilder.WriteString("- This property notification will be automatically unsubscribed.\n")
-
-	message := messageBuilder.String()
-
 	channelToken := os.Getenv("LINE_CHANNEL_ACCESS_TOKEN")
 	if channelToken == "" {
 		return fmt.Errorf("LINE_CHANNEL_ACCESS_TOKEN is not set")
 	}
-		
+	
 	lineClient := line.NewLineClient(channelToken)
 
 	// Send notification to each subscribed user
 	for rows.Next() {
-		var userID, replyToken string
-		if err := rows.Scan(&userID, &replyToken); err != nil {
+		var userID, replyToken, subscribedRoomType sql.NullString
+		if err := rows.Scan(&userID, &replyToken, &subscribedRoomType); err != nil {
 			log.Printf("Error scanning user row: %v", err)
 			continue
 		}
 
-		// Send push notification using LINE API
-		err = lineClient.SendPushMessage(userID, message)
+		// Check if the user's subscribed room type matches any available rooms
+		shouldNotify := false
+		if !subscribedRoomType.Valid || subscribedRoomType.String == "" {
+			// If no room type specified, notify for any availability
+			shouldNotify = true
+		} else {
+			// Check if the subscribed room type is available
+			for _, availableRoom := range response.Room {
+				if availableRoom == subscribedRoomType.String {
+					shouldNotify = true
+					break
+				}
+			}
+		}
+
+		if !shouldNotify {
+			continue
+		}
+
+		// Prepare notification message
+		var messageBuilder strings.Builder
+		messageBuilder.WriteString(fmt.Sprintf("🔔 *UR %s - 空室通知 / Vacancy Notification*\n\n", unitName))
+		messageBuilder.WriteString(fmt.Sprintf("空室数 / Available rooms: %d\n", response.Count))
+		messageBuilder.WriteString("\n空室タイプ / Available room types:\n")
+		for _, roomType := range response.Room {
+			messageBuilder.WriteString(fmt.Sprintf("- %s\n", roomType))
+		}
+
+		// Get the property URL from the database
+		var propertyURL string
+		err = db.QueryRow("SELECT url FROM units WHERE unit_name = $1", unitName).Scan(&propertyURL)
 		if err != nil {
-			log.Printf("Error sending push message to user %s: %v", userID, err)
+			log.Printf("Error getting property URL: %v", err)
+		} else {
+			fullURL := fmt.Sprintf("https://www.ur-net.go.jp%s", propertyURL)
+			messageBuilder.WriteString(fmt.Sprintf("\n物件詳細 / Property details: %s\n", fullURL))
+		}
+
+		messageBuilder.WriteString("\n⚠️ ご注意 / Important:\n")
+		messageBuilder.WriteString("- 空室は先着順です。お早めにご応募ください。\n")
+		messageBuilder.WriteString("- この物件の通知は自動的に解除されます。\n\n")
+		messageBuilder.WriteString("- Vacancies are filled on a first-come, first-served basis. Please apply as soon as possible.\n")
+		messageBuilder.WriteString("- This property notification will be automatically unsubscribed.\n")
+
+		message := messageBuilder.String()
+
+		// Send push notification using LINE API
+		err = lineClient.SendPushMessage(userID.String, message)
+		if err != nil {
+			log.Printf("Error sending push message to user %s: %v", userID.String, err)
 			continue
 		}
 
 		// After successful notification, unsubscribe the user from this unit
-		if err := unsubscribeUser(db, userID, unitName); err != nil {
-			log.Printf("Error unsubscribing user %s from unit %s: %v", userID, unitName, err)
+		if err := unsubscribeUser(db, userID.String, unitName); err != nil {
+			log.Printf("Error unsubscribing user %s from unit %s: %v", userID.String, unitName, err)
 			continue
 		}
 	}
