@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd web && pnpm install && pnpm build",
+  "buildCommand": "cd web && pnpm install --no-frozen-lockfile && pnpm run build",
   "outputDirectory": "web/dist",
   "framework": "astro",
   "rewrites": [
