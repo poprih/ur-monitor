@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,159 @@ import (
 	"github.com/poprih/ur-monitor/lib/models"
 	"github.com/poprih/ur-monitor/pkg/line"
 )
+
+// handleUnsubscribe handles the unsubscribe command
+func handleUnsubscribe(db *sql.DB, lineClient *line.LineClient, userID, messageText string, replyToken string) error {
+	// Extract mansion name from the message (remove the "-" prefix)
+	mansionName := strings.TrimSpace(messageText[1:])
+	
+	// Check if the mansion exists
+	var unitID int
+	err := db.QueryRow("SELECT id FROM units WHERE unit_name ILIKE $1", mansionName).Scan(&unitID)
+	if err != nil {
+		lineClient.SendReplyMessage(replyToken, line.MessageTemplates.InvalidUnitName)
+		return err
+	}
+	
+	// Cancel subscription (soft delete)
+	_, err = db.Exec(`
+		UPDATE subscriptions 
+		SET deleted_at = NOW() 
+		WHERE line_user_id = $1 AND unit_id = $2 AND deleted_at IS NULL`, 
+		userID, unitID)
+	if err != nil {
+		lineClient.SendReplyMessage(replyToken, line.FormatBilingualMessage(line.MessageTemplates.UnsubscribeError, mansionName))
+		return err
+	}
+	
+	// Check if there are other subscribers for this mansion
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE unit_id = $1 AND deleted_at IS NULL", unitID).Scan(&count)
+	if err == nil && count == 0 {
+		// If no other subscribers, update mansion subscription status
+		_, err = db.Exec("UPDATE units SET is_subscribed = FALSE WHERE id = $1", unitID)
+		if err != nil {
+			log.Println("Error updating unit subscription status:", err)
+		}
+	}
+	
+	// Send unsubscribe success message
+	lineClient.SendReplyMessage(replyToken, line.FormatBilingualMessage(line.MessageTemplates.UnsubscribeSuccess, mansionName))
+	return nil
+}
+
+// handleSubscribe handles the subscribe command
+func handleSubscribe(db *sql.DB, lineClient *line.LineClient, userID string, parts []string, replyToken string) error {
+	var unitName string
+	var roomTypes []string
+	
+	if len(parts) == 1 {
+		unitName = parts[0]
+	} else if len(parts) == 2 {
+		unitName = strings.TrimSpace(parts[0])
+		roomTypes = strings.Split(strings.TrimSpace(parts[1]), "&")
+	} else {
+		lineClient.SendReplyMessage(replyToken, line.MessageTemplates.InvalidFormat)
+		return fmt.Errorf("invalid message format")
+	}
+
+	// Check if user is premium and subscription count
+	var isPremium bool
+	var subscriptionCount int
+	err := db.QueryRow("SELECT is_premium FROM users WHERE line_user_id = $1", userID).Scan(&isPremium)
+	if err != nil {
+		return err
+	}
+
+	if !isPremium {
+		err = db.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE line_user_id = $1 AND deleted_at IS NULL", userID).Scan(&subscriptionCount)
+		if err != nil {
+			return err
+		}
+
+		if subscriptionCount >= 1 {
+			lineClient.SendReplyMessage(replyToken, line.MessageTemplates.SubscriptionLimitReached)
+			return fmt.Errorf("subscription limit reached")
+		}
+	}
+
+	// Check if unit exists
+	var unitID int
+	err = db.QueryRow("SELECT id FROM units WHERE unit_name ILIKE $1", unitName).Scan(&unitID)
+	if err != nil {
+		lineClient.SendReplyMessage(replyToken, line.MessageTemplates.InvalidUnitName)
+		return err
+	}
+
+	// Convert room types to JSON array
+	roomTypesJSON, err := json.Marshal(roomTypes)
+	if err != nil {
+		return err
+	}
+
+	// Insert subscription
+	_, err = db.Exec(`
+		INSERT INTO subscriptions (line_user_id, unit_id, room_types, deleted_at) 
+		VALUES ($1::text, $2, $3, NULL) 
+		ON CONFLICT (line_user_id, unit_id) 
+		DO UPDATE SET room_types = $3, deleted_at = NULL`, 
+		userID, unitID, roomTypesJSON)
+	if err != nil {
+		lineClient.SendReplyMessage(replyToken, line.FormatBilingualMessage(line.MessageTemplates.SubscriptionError, unitName))
+		return err
+	}
+
+	// Create confirmation message
+	var confirmationMsg string
+	if len(roomTypes) > 0 {
+		confirmationMsg = fmt.Sprintf("%s\n%s", 
+			line.FormatBilingualMessage(line.MessageTemplates.SubscriptionSuccess, unitName),
+			line.FormatBilingualMessage(line.MessageTemplates.SpecifiedRoomTypes, strings.Join(roomTypes, "、")))
+	} else {
+		confirmationMsg = line.FormatBilingualMessage(line.MessageTemplates.SubscriptionSuccess, unitName)
+	}
+
+	// Get all active subscriptions for this user
+	rows, err := db.Query(`
+		SELECT u.unit_name, s.room_types
+		FROM subscriptions s
+		JOIN units u ON s.unit_id = u.id
+		WHERE s.line_user_id = $1 AND s.deleted_at IS NULL
+	`, userID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	
+	var subscriptions []string
+	for rows.Next() {
+		var subUnitName string
+		var subRoomTypesJSON []byte
+		if err := rows.Scan(&subUnitName, &subRoomTypesJSON); err != nil {
+			continue
+		}
+
+		var subRoomTypes []string
+		if len(subRoomTypesJSON) > 0 {
+			if err := json.Unmarshal(subRoomTypesJSON, &subRoomTypes); err != nil {
+				continue
+			}
+		}
+
+		if len(subRoomTypes) > 0 {
+			subscriptions = append(subscriptions, fmt.Sprintf("%s: %s", subUnitName, strings.Join(subRoomTypes, "、")))
+		} else {
+			subscriptions = append(subscriptions, subUnitName)
+		}
+	}
+
+	if len(subscriptions) > 0 {
+		confirmationMsg += "\n\n" + line.MessageTemplates.CurrentSubscriptions + "\n" + strings.Join(subscriptions, "\n")
+	}
+	
+	lineClient.SendReplyMessage(replyToken, confirmationMsg)
+	return nil
+}
 
 func HandleLine(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -80,88 +234,22 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 			}					
 			var userID = e.Source.UserID
 			
-			// Parse subscription conditions from message
-			parts := strings.Split(strings.TrimSpace(e.Message.Text), ":")
-			var unitName string
-			var roomTypes []string
+			messageText := strings.TrimSpace(e.Message.Text)
 			
-			if len(parts) == 1 {
-				unitName = parts[0]
-			} else if len(parts) == 2 {
-				unitName = strings.TrimSpace(parts[0])
-				// Split room types by "&"
-				roomTypes = strings.Split(strings.TrimSpace(parts[1]), "&")
-			} else {
-				lineClient.SendReplyMessage(e.ReplyToken, "正しい形式で入力してください。\n例：マンション名 または マンション名:3LDK&4LDK")
-				return
-			}
-
-			var isPremium bool
-			var subscriptionCount int
-			err = database.QueryRow("SELECT is_premium FROM users WHERE line_user_id = $1", userID).Scan(&isPremium)
-			if err != nil {
-				log.Println("Error checking premium status:", err)
-				http.Error(w, "Failed to check user status", http.StatusInternalServerError)
-				return
-			}
-
-			if !isPremium {
-				err = database.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE line_user_id = $1 AND deleted_at IS NULL", userID).Scan(&subscriptionCount)
-				if err != nil {
-					log.Println("Error counting subscriptions:", err)
-					http.Error(w, "Failed to check subscription count", http.StatusInternalServerError)
-					return
+			// Handle unsubscribe command
+			if strings.HasPrefix(messageText, "-") {
+				if err := handleUnsubscribe(database, lineClient, userID, messageText, e.ReplyToken); err != nil {
+					log.Println("Error handling unsubscribe:", err)
 				}
-
-				if subscriptionCount >= 1 {
-					lineClient.SendReplyMessage(e.ReplyToken, line.MessageTemplates.SubscriptionLimitReached)
-					return
-				}
-			}
-
-			// Check if urID exists in the units table
-			var unitID int
-			err = database.QueryRow("SELECT id FROM units WHERE unit_name ILIKE $1", unitName).Scan(&unitID)
-			if err != nil {
-				log.Println("Error querying unit:", err)
-				lineClient.SendReplyMessage(e.ReplyToken, line.MessageTemplates.InvalidUnitName)
-				http.Error(w, "Failed to query unit", http.StatusInternalServerError)
 				return
-			}
-
-			// Convert room types to JSON array
-			roomTypesJSON, err := json.Marshal(roomTypes)
-			if err != nil {
-				log.Println("Error marshaling room types:", err)
-				http.Error(w, "Failed to process subscription conditions", http.StatusInternalServerError)
-				return
-			}
-
-			// Insert subscription with room types
-			_, err = database.Exec(`
-				INSERT INTO subscriptions (line_user_id, unit_id, room_types, deleted_at) 
-				VALUES ($1::text, $2, $3, NULL) 
-				ON CONFLICT (line_user_id, unit_id) 
-				DO UPDATE SET room_types = $3, deleted_at = NULL`, 
-				userID, unitID, roomTypesJSON)
-			if err != nil {
-				log.Println("Error inserting subscription:", err)
-				lineClient.SendReplyMessage(e.ReplyToken, line.FormatBilingualMessage(line.MessageTemplates.SubscriptionError, unitName))
-				http.Error(w, "Failed to subscribe", http.StatusInternalServerError)
-				return
-			}
-
-			// Create confirmation message
-			var confirmationMsg string
-			if len(roomTypes) > 0 {
-				confirmationMsg = fmt.Sprintf("%s\n指定された間取り: %s", 
-					line.FormatBilingualMessage(line.MessageTemplates.SubscriptionSuccess, unitName),
-					strings.Join(roomTypes, "、"))
-			} else {
-				confirmationMsg = line.FormatBilingualMessage(line.MessageTemplates.SubscriptionSuccess, unitName)
 			}
 			
-			lineClient.SendReplyMessage(e.ReplyToken, confirmationMsg)
+			// Handle subscribe command
+			parts := strings.Split(messageText, ":")
+			if err := handleSubscribe(database, lineClient, userID, parts, e.ReplyToken); err != nil {
+				log.Println("Error handling subscribe:", err)
+			}
+
 		case "unfollow":
 			// Check if the user has any subscriptions
 			rows, err := database.Query("SELECT unit_id FROM subscriptions WHERE line_user_id = $1", e.Source.UserID)
