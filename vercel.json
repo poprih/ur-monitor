@@ -1,3 +1,15 @@
 {
-  "routes": [{ "src": "/.*", "dest": "api/*.go" }]
+  "buildCommand": "cd web && pnpm install && pnpm build",
+  "outputDirectory": "web/dist",
+  "framework": "astro",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
 }
