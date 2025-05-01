@@ -3,7 +3,7 @@
   "outputDirectory": "web/dist",
   "framework": "astro",
   "functions": {
-    "api/room_check": {
+    "api/room_check.go": {
       "maxDuration": 60
     }
   },
