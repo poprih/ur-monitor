@@ -102,7 +102,7 @@ func checkAndNotifyAvailableRooms() error {
 		}
 
 		// Add a small delay to avoid overwhelming the UR API
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 
 	return nil

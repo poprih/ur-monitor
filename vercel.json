@@ -2,6 +2,11 @@
   "buildCommand": "cd web && pnpm install --no-frozen-lockfile && pnpm run build",
   "outputDirectory": "web/dist",
   "framework": "astro",
+  "functions": {
+    "/api/room_check": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
