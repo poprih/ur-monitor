@@ -38,6 +38,18 @@ const t = translations[locale];
       property="twitter:image"
       content={`${Astro.url.origin}/ur-monitor.png`}
     />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-CSHSF5KRY3"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(...args: any[]) {
+        window.dataLayer.push(args);
+      }
+      gtag("js", new Date());
+
+      gtag("config", "G-CSHSF5KRY3");
+    </script>
   </head>
   <body class="bg-gray-50 text-gray-900">
     <div class="absolute top-4 right-4 z-50">
