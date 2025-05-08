@@ -1,9 +1,9 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import LandingSection from "../components/LandingSection.astro";
-import { defaultLocale, translations } from "../config/i18n";
+import Layout from "../../layouts/Layout.astro";
+import LandingSection from "../../components/LandingSection.astro";
+import { translations } from "../../config/i18n";
 
-const locale = defaultLocale;
+const locale = "en";
 const t = translations[locale];
 ---
 
@@ -22,7 +22,7 @@ const t = translations[locale];
           href="#how-to"
           class="bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-lg font-medium transition-colors inline-block"
         >
-          始めましょう
+          Get Started
         </a>
       </div>
     </div>
@@ -76,9 +76,10 @@ const t = translations[locale];
               ></path>
             </svg>
           </div>
-          <h3 class="text-xl font-bold mb-4">LINE通知</h3>
+          <h3 class="text-xl font-bold mb-4">LINE Notifications</h3>
           <p>
-            新しい物件情報が出たら、すぐにLINEでお知らせします。毎回サイトをチェックする必要はありません。
+            Receive immediate LINE notifications when new property listings
+            become available. No need to check the website repeatedly.
           </p>
         </div>
       </div>
@@ -105,16 +106,18 @@ const t = translations[locale];
 
                 {index === 1 && (
                   <div class="mt-4 p-4 bg-gray-100 rounded-md">
-                    <p class="font-mono text-sm">【登録】団地名 間取り</p>
+                    <p class="font-mono text-sm">
+                      【Register】Housing Complex Name Room Layout
+                    </p>
                     <p class="text-sm mt-2">
-                      例：【登録】光が丘パークタウン 3LDK
+                      Example: 【Register】Hikarigaoka Park Town 3LDK
                     </p>
                   </div>
                 )}
 
                 {index === 3 && (
                   <div class="mt-4 p-4 bg-gray-100 rounded-md">
-                    <p class="font-mono text-sm">【解除】</p>
+                    <p class="font-mono text-sm">【Unregister】</p>
                   </div>
                 )}
               </div>
@@ -165,10 +168,10 @@ const t = translations[locale];
         >
           <svg class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="currentColor">
             <path
-              d="M19.365 9.89c.50 0 .866.37.866.87 0 .498-.366.87-.866.87h-2.488v1.604h2.488c.5 0 .866.37.866.87s-.366.87-.866.87h-3.35c-.5 0-.87-.37-.87-.87V7.302c0-.5.37-.866.87-.866h3.35c.5 0 .866.37.866.87 0 .498-.366.868-.866.868h-2.488v1.716h2.488zm-6.65-3.454c.5 0 .866.366.866.866v5.93c0 .5-.37.87-.866.87-.498 0-.87-.37-.87-.87v-5.93c0-.5.372-.866.87-.866zm-3.95 0c.5 0 .866.366.866.866 0 .382-.308.696-.87 1.106l-2.174 1.802v3.022c0 .5-.37.87-.87.87-.498 0-.866-.37-.866-.87v-3.35c0-.348.09-.57.31-.762l2.8-2.742c.14-.136.274-.262.502-.322.088-.02.192-.02.302-.02zm-8.764 5c0-4.142 4.104-7.502 9.142-7.502 5.04 0 9.142 3.36 9.142 7.502 0 3.696-3.268 6.788-7.688 7.39-1.084.242-1.91.732-2.196 1.718-.05.168-.114.434-.12.456-.068.354-.478 2.22-.514 2.252-.108.144-.35.312-.676.18-.106-.038-.23-.182 0-.654.094-.308.208-.808.154-.938-.236-.566-3.32-1.942-4.428-2.794-.816-.628-2.816-2.028-2.816-4.61z"
+              d="M19.365 9.89c.50 0 .866.37.866.87 0 .498-.366.87-.866.87h-2.488v1.604h2.488c.5 0 .866.37.866.87s-.366.87-.866.87h-3.35c-.5 0-.87-.37-.87-.87V7.302c0-.5.37-.866.87-.866h3.35c.5 0 .866.37.866.87 0 .498-.366.868-.866.868h-2.488v1.716h2.488zm-6.65-3.454c.5 0 .866.366.866.866v5.93c0 .5-.37.87-.866.87-.498 0-.87-.37-.87-.87v-5.93c0-.5.372-.866.87-.866zm-3.95 0c.5 0 .866.366.866.866 0 .382-.308.696-.87 1.106l-2.174 1.802v3.022c0 .5-.37.87-.87.87-.498 0-.866-.37-.866-.87v-3.35c0-.348.09-.57.31-.762l2.8-2.742c.14-.136.274-.262.502-.322.088-.02.192-.02zm-8.764 5c0-4.142 4.104-7.502 9.142-7.502 5.04 0 9.142 3.36 9.142 7.502 0 3.696-3.268 6.788-7.688 7.39-1.084.242-1.91.732-2.196 1.718-.05.168-.114.434-.12.456-.068.354-.478 2.22-.514 2.252-.108.144-.35.312-.676.18-.106-.038-.23-.182 0-.654.094-.308.208-.808.154-.938-.236-.566-3.32-1.942-4.428-2.794-.816-.628-2.816-2.028-2.816-4.61z"
             ></path>
           </svg>
-          LINE公式アカウントを友達追加
+          Add LINE Official Account
         </a>
       </div>
     </div>

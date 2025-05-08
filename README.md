@@ -38,8 +38,7 @@ go mod download
 3. Set up environment variables:
 
 ```bash
-export LINE_CHANNEL_SECRET=your_channel_secret
-export LINE_CHANNEL_TOKEN=your_channel_token
+export LINE_CHANNEL_ACCESS_TOKEN=your_channel_token
 export DATABASE_URL=your_neon_postgres_url
 ```
 
@@ -133,8 +132,7 @@ go mod download
 3. 環境変数を設定:
 
 ```bash
-export LINE_CHANNEL_SECRET=your_channel_secret
-export LINE_CHANNEL_TOKEN=your_channel_token
+export LINE_CHANNEL_ACCESS_TOKEN=your_channel_token
 export DATABASE_URL=your_neon_postgres_url
 ```
 
