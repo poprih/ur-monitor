@@ -11,7 +11,7 @@ const t = translations[locale];
   <!-- Hero Section -->
   <LandingSection
     id="hero"
-    bgColor="bg-blue-700"
+    bgColor="bg-secondary"
     className="text-white text-center"
   >
     <div class="max-w-3xl mx-auto space-y-6">
@@ -20,7 +20,7 @@ const t = translations[locale];
       <div class="pt-4">
         <a
           href="#how-to"
-          class="bg-white text-blue-700 hover:bg-blue-50 px-6 py-3 rounded-lg font-medium transition-colors inline-block"
+          class="bg-white text-secondary hover:bg-gray-100 px-6 py-3 rounded-lg font-medium transition-colors inline-block"
         >
           始めましょう
         </a>
@@ -38,7 +38,7 @@ const t = translations[locale];
         {
           t.sections.painPoints.points.map((point, index) => (
             <div class="bg-white p-6 rounded-lg shadow-sm flex">
-              <div class="mr-4 bg-blue-100 text-blue-700 h-8 w-8 flex items-center justify-center rounded-full font-bold">
+              <div class="mr-4 bg-secondary-100 text-secondary h-8 w-8 flex items-center justify-center rounded-full font-bold">
                 {index + 1}
               </div>
               <p class="text-lg">{point}</p>
@@ -58,7 +58,7 @@ const t = translations[locale];
       <div class="mt-12 flex justify-center">
         <div class="bg-gray-100 p-8 rounded-xl max-w-md">
           <div
-            class="mx-auto w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-6"
+            class="mx-auto w-24 h-24 bg-primary rounded-full flex items-center justify-center mb-6"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -96,25 +96,66 @@ const t = translations[locale];
         {
           t.sections.howTo.steps.map((step, index) => (
             <div class="flex flex-col md:flex-row gap-6 items-center">
-              <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold flex-shrink-0">
+              <div class="bg-secondary text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold flex-shrink-0">
                 {index + 1}
               </div>
               <div>
                 <h3 class="text-xl font-semibold mb-2">{step.title}</h3>
                 <p class="text-lg text-gray-700">{step.description}</p>
 
+                {index === 0 && (
+                  <div class="mt-4">
+                    <p class="mb-3">
+                      LINE公式アカウントを友達追加してください：
+                    </p>
+                    <div class="flex items-center justify-center">
+                      <div class="hidden md:block mr-6">
+                        <img
+                          src="https://qr-official.line.me/gs/M_757mugsx_GW.png?oat_content=qr"
+                          alt="LINE QR Code"
+                          class="w-32 h-32"
+                        />
+                      </div>
+                      <div class="md:hidden">
+                        <a href="https://lin.ee/yWlCUdw">
+                          <img
+                            src="https://scdn.line-apps.com/n/line_add_friends/btn/ja.png"
+                            alt="友だち追加"
+                            class="h-12"
+                          />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {index === 1 && (
                   <div class="mt-4 p-4 bg-gray-100 rounded-md">
-                    <p class="font-mono text-sm">【登録】団地名 間取り</p>
-                    <p class="text-sm mt-2">
-                      例：【登録】光が丘パークタウン 3LDK
+                    <p class="font-mono text-sm">[団地名]</p>
+                    <p class="text-sm mt-1">例：桜宮リバーシティ中央</p>
+
+                    <p class="font-mono text-sm mt-3">
+                      指定間取り: [団地名]:2LDK
+                    </p>
+                    <p class="text-sm mt-1">例：桜宮リバーシティ中央:2LDK</p>
+
+                    <p class="font-mono text-sm mt-3">
+                      指定多種間取り: [団地名]:2LDK&3LDK
+                    </p>
+                    <p class="text-sm mt-1">
+                      例：桜宮リバーシティ中央:2LDK&2DK
+                    </p>
+
+                    <p class="text-sm mt-3 text-primary">
+                      注意：存在しない間取りを指定すると、通知は届きません。
                     </p>
                   </div>
                 )}
 
                 {index === 3 && (
                   <div class="mt-4 p-4 bg-gray-100 rounded-md">
-                    <p class="font-mono text-sm">【解除】</p>
+                    <p class="font-mono text-sm">-[団地名]</p>
+                    <p class="text-sm mt-2">例：-桜宮リバーシティ中央</p>
                   </div>
                 )}
               </div>
@@ -132,14 +173,14 @@ const t = translations[locale];
         {t.sections.notes.title}
       </h2>
 
-      <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+      <div class="bg-primary-50 border border-primary-200 rounded-lg p-6">
         <ul class="space-y-4">
           {
             t.sections.notes.points.map((point) => (
               <li class="flex">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-6 w-6 text-yellow-500 mr-2 flex-shrink-0"
+                  class="h-6 w-6 text-primary mr-2 flex-shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -159,17 +200,25 @@ const t = translations[locale];
       </div>
 
       <div class="mt-12 text-center">
-        <a
-          href="https://line.me/R/ti/p/@000aabbcc"
-          class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-medium text-lg inline-flex items-center transition-colors"
-        >
-          <svg class="w-6 h-6 mr-2" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M19.365 9.89c.50 0 .866.37.866.87 0 .498-.366.87-.866.87h-2.488v1.604h2.488c.5 0 .866.37.866.87s-.366.87-.866.87h-3.35c-.5 0-.87-.37-.87-.87V7.302c0-.5.37-.866.87-.866h3.35c.5 0 .866.37.866.87 0 .498-.366.868-.866.868h-2.488v1.716h2.488zm-6.65-3.454c.5 0 .866.366.866.866v5.93c0 .5-.37.87-.866.87-.498 0-.87-.37-.87-.87v-5.93c0-.5.372-.866.87-.866zm-3.95 0c.5 0 .866.366.866.866 0 .382-.308.696-.87 1.106l-2.174 1.802v3.022c0 .5-.37.87-.87.87-.498 0-.866-.37-.866-.87v-3.35c0-.348.09-.57.31-.762l2.8-2.742c.14-.136.274-.262.502-.322.088-.02.192-.02.302-.02zm-8.764 5c0-4.142 4.104-7.502 9.142-7.502 5.04 0 9.142 3.36 9.142 7.502 0 3.696-3.268 6.788-7.688 7.39-1.084.242-1.91.732-2.196 1.718-.05.168-.114.434-.12.456-.068.354-.478 2.22-.514 2.252-.108.144-.35.312-.676.18-.106-.038-.23-.182 0-.654.094-.308.208-.808.154-.938-.236-.566-3.32-1.942-4.428-2.794-.816-.628-2.816-2.028-2.816-4.61z"
-            ></path>
-          </svg>
-          LINE公式アカウントを友達追加
-        </a>
+        <div class="hidden md:block">
+          <div class="flex flex-col items-center">
+            <p class="mb-4 font-medium">LINE公式アカウントを友達追加</p>
+            <img
+              src="https://qr-official.line.me/gs/M_757mugsx_GW.png?oat_content=qr"
+              alt="LINE QR Code"
+              class="w-48 h-48"
+            />
+          </div>
+        </div>
+        <div class="md:hidden flex justify-center">
+          <a href="https://lin.ee/yWlCUdw">
+            <img
+              src="https://scdn.line-apps.com/n/line_add_friends/btn/ja.png"
+              alt="友だち追加"
+              class="h-12"
+            />
+          </a>
+        </div>
       </div>
     </div>
   </LandingSection>

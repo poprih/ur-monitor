@@ -111,7 +111,7 @@ export const translations: Record<Locale, TranslationContent> = {
         ],
       },
       footer: {
-        copyright: "© 2023 UR物件モニター",
+        copyright: "© 2025 UR物件モニター",
       },
     },
   },
@@ -179,7 +179,7 @@ export const translations: Record<Locale, TranslationContent> = {
         ],
       },
       footer: {
-        copyright: "© 2023 UR Property Monitor",
+        copyright: "© 2025 UR Property Monitor",
       },
     },
   },
@@ -244,7 +244,7 @@ export const translations: Record<Locale, TranslationContent> = {
         ],
       },
       footer: {
-        copyright: "© 2023 UR房源监控",
+        copyright: "© 2025 UR房源监控",
       },
     },
   },
