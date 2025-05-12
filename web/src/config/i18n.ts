@@ -49,9 +49,9 @@ export interface TranslationContent {
 export const translations: Record<Locale, TranslationContent> = {
   ja: {
     meta: {
-      title: "UR物件モニター - UR賃貸住宅の最新情報をLINEでお知らせ",
+      title: "UR物件モニター - UR賃貸住宅の空き情報をLINEでお知らせ",
       description:
-        "UR賃貸住宅の新着物件情報をリアルタイムでLINEに通知します。ご希望の物件が出たらすぐにお知らせします。",
+        "UR賃貸住宅の空き物件情報をリアルタイムでLINEに通知します。ご希望の物件が空いたらすぐにお知らせします。",
     },
     nav: {
       languageSelector: "言語を選択",
@@ -59,7 +59,7 @@ export const translations: Record<Locale, TranslationContent> = {
     sections: {
       hero: {
         title: "UR物件モニター",
-        subtitle: "UR賃貸住宅の最新情報をLINEでお知らせ",
+        subtitle: "UR賃貸住宅の空き情報をLINEでお知らせ",
       },
       painPoints: {
         title: "UR賃貸住宅を探す際の課題",
@@ -72,7 +72,7 @@ export const translations: Record<Locale, TranslationContent> = {
         ],
       },
       service: {
-        title: "LINEで簡単に物件をモニター",
+        title: "LINEで簡単に空き物件をモニター",
         description:
           "当サービスでは、あなたの希望するUR物件に空きが出た際に、LINEですぐにお知らせします。毎日サイトをチェックする手間を省き、理想の物件を逃さないようサポートします。",
       },
@@ -105,7 +105,7 @@ export const translations: Record<Locale, TranslationContent> = {
         title: "ご利用上の注意点",
         points: [
           "現在、1ユーザーにつき1物件（間取り指定可）のみモニター可能です",
-          "新着物件は1回のみ通知されます",
+          "空き物件は1回のみ通知されます",
           "希望の物件が見つからない場合は、その物件が貸し出された後に再度登録が必要です",
           "システムの都合上、稀に通知が遅れる場合があります",
         ],
@@ -118,9 +118,9 @@ export const translations: Record<Locale, TranslationContent> = {
   en: {
     meta: {
       title:
-        "UR Property Monitor - Get LINE notifications for UR rental housing",
+        "UR Property Monitor - Get LINE notifications for available UR rental housing",
       description:
-        "Receive real-time LINE notifications for new UR rental housing listings. Get notified immediately when your desired property becomes available.",
+        "Receive real-time LINE notifications for available UR rental housing. Get notified immediately when your desired property becomes vacant.",
     },
     nav: {
       languageSelector: "Select Language",
@@ -128,7 +128,7 @@ export const translations: Record<Locale, TranslationContent> = {
     sections: {
       hero: {
         title: "UR Property Monitor",
-        subtitle: "Get LINE notifications for UR rental housing",
+        subtitle: "Get LINE notifications for available UR rental housing",
       },
       painPoints: {
         title: "Challenges when searching for UR rental housing",
@@ -141,7 +141,7 @@ export const translations: Record<Locale, TranslationContent> = {
         ],
       },
       service: {
-        title: "Monitor Properties Easily via LINE",
+        title: "Monitor Available Properties Easily via LINE",
         description:
           "Our service notifies you via LINE immediately when your desired UR property becomes available. Save the hassle of checking the website daily and get support to not miss your ideal property.",
       },
@@ -173,7 +173,7 @@ export const translations: Record<Locale, TranslationContent> = {
         title: "Notes for Usage",
         points: [
           "Currently, each user can monitor only one property (with room layout specification)",
-          "New property listings are notified only once",
+          "Available properties are notified only once",
           "If you do not find your desired property, you need to register again after that property has been rented out",
           "Due to system limitations, notifications may occasionally be delayed",
         ],
@@ -185,9 +185,9 @@ export const translations: Record<Locale, TranslationContent> = {
   },
   zh: {
     meta: {
-      title: "UR房源监控 - LINE通知UR租赁住房最新信息",
+      title: "UR房源监控 - LINE通知UR租赁住房空置信息",
       description:
-        "通过LINE实时通知UR租赁住房的新房源信息。当您心仪的房源一出现，立即通知您。",
+        "通过LINE实时通知UR租赁住房的空置房源信息。当您心仪的房源一有空置，立即通知您。",
     },
     nav: {
       languageSelector: "选择语言",
@@ -195,7 +195,7 @@ export const translations: Record<Locale, TranslationContent> = {
     sections: {
       hero: {
         title: "UR房源监控",
-        subtitle: "通过LINE通知UR租赁住房最新信息",
+        subtitle: "通过LINE通知UR租赁住房空置信息",
       },
       painPoints: {
         title: "寻找UR租赁住房时的挑战",
@@ -208,9 +208,9 @@ export const translations: Record<Locale, TranslationContent> = {
         ],
       },
       service: {
-        title: "通过LINE轻松监控房源",
+        title: "通过LINE轻松监控空置房源",
         description:
-          "我们的服务会在您心仪的UR房源可用时通过LINE立即通知您。省去每天查看网站的麻烦，帮助您不错过理想的房源。",
+          "我们的服务会在您心仪的UR房源空置时通过LINE立即通知您。省去每天查看网站的麻烦，帮助您不错过理想的房源。",
       },
       howTo: {
         title: "使用方法",
@@ -238,7 +238,7 @@ export const translations: Record<Locale, TranslationContent> = {
         title: "使用注意事项",
         points: [
           "目前，每位用户只能监控一个房源（可指定房间布局）",
-          "新房源只通知一次",
+          "空置房源只通知一次",
           "如果您没有找到心仪的房源，需要在该房源被租出后重新注册",
           "由于系统限制，通知可能偶尔会延迟",
         ],
