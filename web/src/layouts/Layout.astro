@@ -1,44 +1,25 @@
 ---
-import { translations, locales, defaultLocale } from "../config/i18n";
-import type { Locale } from "../config/i18n";
+import { defaultLocale } from "../config/i18n";
 
-interface Props {
-  locale: Locale;
-  title?: string;
-  description?: string;
-}
+import { ClientRouter } from "astro:transitions";
 
-const { locale = defaultLocale } = Astro.props;
-const t = translations[locale];
+const { title, description } = Astro.props;
 ---
 
 <!doctype html>
-<html lang={locale}>
+<html lang={defaultLocale}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
-    <title>{t.meta.title}</title>
-    <meta name="description" content={t.meta.description} />
-
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content={Astro.url} />
-    <meta property="og:title" content={t.meta.title} />
-    <meta property="og:description" content={t.meta.description} />
-    <meta property="og:image" content={`${Astro.url.origin}/ur-monitor.png`} />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content={Astro.url} />
-    <meta property="twitter:title" content={t.meta.title} />
-    <meta property="twitter:description" content={t.meta.description} />
-    <meta
-      property="twitter:image"
-      content={`${Astro.url.origin}/ur-monitor.png`}
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
     />
-    <!-- Google tag (gtag.js) -->
+
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-CSHSF5KRY3"
     ></script>
     <script>
@@ -50,70 +31,37 @@ const t = translations[locale];
 
       gtag("config", "G-CSHSF5KRY3");
     </script>
+    <ClientRouter />
   </head>
-  <body class="bg-gray-50 text-gray-900">
-    <main>
+  <body
+    class="bg-gray-50 text-gray-900 flex flex-col justify-between min-h-screen antialiased"
+  >
+    <main class="flex-grow">
       <slot />
     </main>
-    <footer class="bg-secondary text-white py-8">
-      <div class="container mx-auto px-4 text-center">
-        <p>{t.sections.footer.copyright}</p>
+    <footer
+      class="bg-secondary-800 text-white py-6 border-t border-secondary-700"
+    >
+      <div class="container mx-auto px-4 text-center text-sm">
+        <p>© 2025 UR空き情報モニター</p>
       </div>
     </footer>
-
-    <script>
-      // JavaScript for toggling the language menu
-      document.addEventListener("DOMContentLoaded", function () {
-        const button = document.getElementById("language-menu-button");
-        const menu = document.getElementById("language-menu");
-
-        if (button && menu) {
-          // Toggle menu on button click
-          button.addEventListener("click", () => {
-            const expanded = button.getAttribute("aria-expanded") === "true";
-            button.setAttribute("aria-expanded", expanded ? "false" : "true");
-            menu.classList.toggle("hidden");
-          });
-
-          // Close menu when clicking outside
-          document.addEventListener("click", (event) => {
-            const target = event.target as Node;
-            if (
-              button &&
-              menu &&
-              !button.contains(target) &&
-              !menu.contains(target)
-            ) {
-              button.setAttribute("aria-expanded", "false");
-              menu.classList.add("hidden");
-            }
-          });
-
-          // Handle keyboard navigation
-          document.addEventListener("keydown", (event) => {
-            if (
-              event.key === "Escape" &&
-              button.getAttribute("aria-expanded") === "true"
-            ) {
-              button.setAttribute("aria-expanded", "false");
-              menu.classList.add("hidden");
-              button.focus();
-            }
-          });
-        }
-      });
-    </script>
   </body>
 </html>
 
 <style is:global>
   html {
-    font-family: system-ui, sans-serif;
+    font-family:
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      system-ui,
+      sans-serif;
     scroll-behavior: smooth;
   }
 
   section {
-    padding: 4rem 0;
+    padding: 3rem 0;
   }
 
   .container {
@@ -121,5 +69,60 @@ const t = translations[locale];
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
+  }
+
+  /* shadcn-inspired global styles */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    line-height: 1.2;
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: 1.875rem; /* text-3xl */
+  }
+
+  h2 {
+    font-size: 1.5rem; /* text-2xl */
+  }
+
+  h3 {
+    font-size: 1.25rem; /* text-xl */
+  }
+
+  /* Button styles */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition-property: color, background-color, border-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  .btn-primary {
+    background-color: var(--color-primary-600, #921841);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-primary-700, #7d1038);
+  }
+
+  /* Card styles */
+  .card {
+    background-color: white;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.1),
+      0 1px 2px 0 rgba(0, 0, 0, 0.06);
   }
 </style>

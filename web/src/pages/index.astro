@@ -2,12 +2,15 @@
 import Layout from "../layouts/Layout.astro";
 import LandingSection from "../components/LandingSection.astro";
 import { defaultLocale, translations } from "../config/i18n";
+import { getRegions } from "../endpoints";
 
 const locale = defaultLocale;
 const t = translations[locale];
+
+const regions = await getRegions();
 ---
 
-<Layout locale={locale}>
+<Layout>
   <!-- Hero Section -->
   <LandingSection
     id="hero"
@@ -160,6 +163,27 @@ const t = translations[locale];
                 )}
               </div>
             </div>
+          ))
+        }
+      </div>
+    </div>
+  </LandingSection>
+
+  <!-- Regions Section -->
+  <LandingSection id="regions">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="text-3xl font-bold text-center mb-8">
+        URの運営している地域を選択
+      </h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+        {
+          regions.map((region) => (
+            <a
+              href={`/${region.code.toLowerCase()}`}
+              class="bg-gray-100 hover:bg-primary-50 border border-gray-200 hover:border-primary-200 p-4 rounded-lg text-center transition-colors"
+            >
+              <h3 class="text-lg font-medium">{region.name}</h3>
+            </a>
           ))
         }
       </div>

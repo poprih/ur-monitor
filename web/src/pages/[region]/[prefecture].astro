@@ -1,0 +1,127 @@
+---
+import { ArrowLeft, HomeIcon } from "../../assets/icons";
+import { getRegions, getPerfectures } from "../../endpoints/index.js";
+import Layout from "../../layouts/Layout.astro";
+
+export const getStaticPaths = async () => {
+  const regions = await getRegions();
+  const paths = [];
+  for (const region of regions) {
+    const prefectures = await getPerfectures(region.id);
+    for (const prefecture of prefectures) {
+      paths.push({
+        params: {
+          region: region.code.toLowerCase(),
+          prefecture: prefecture.code.toLowerCase(),
+        },
+        props: {
+          regionData: region,
+          prefectureData: prefecture,
+        },
+      });
+    }
+  }
+  return paths;
+};
+
+const { region } = Astro.params;
+const { regionData, prefectureData } = Astro.props;
+---
+
+<Layout
+  title={`${prefectureData.name}のUR空き情報 | UR空き情報モニター`}
+  description={`${prefectureData.name}のUR空き情報をリアルタイムでLINEに通知。希望の物件が空いたらすぐにお知らせします。`}
+>
+  <div class="bg-primary-50 py-4">
+    <div class="container mx-auto px-4">
+      <!-- Breadcrumb Navigation -->
+      <nav class="flex items-center text-sm" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center">
+          <li class="inline-flex items-center">
+            <a
+              href="/"
+              class="inline-flex items-center text-gray-600 hover:text-primary-600"
+            >
+              <HomeIcon class="w-4 h-4" />
+              ホーム
+            </a>
+          </li>
+          <li>
+            <a
+              class="flex items-center"
+              href={`/${region}`}
+              class="inline-flex items-center text-gray-600 hover:text-primary-600"
+            >
+              <ArrowLeft class="w-4 h-4" />
+              <span class="ml-1 text-gray-500 md:ml-2 font-medium"
+                >{regionData.name}地方</span
+              >
+            </a>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <ArrowLeft class="w-4 h-4" />
+              <span class="ml-1 text-gray-500 md:ml-2 font-medium"
+                >{prefectureData.name}</span
+              >
+            </div>
+          </li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="container mx-auto px-4 py-8 mt-4">
+    <a
+      href={`/${region}`}
+      class="inline-flex items-center text-secondary-600 hover:text-secondary-800 mb-6 transition-colors"
+    >
+      <ArrowLeft class="w-4 h-4" />
+      {regionData.name}に戻る
+    </a>
+
+    <!-- Header Card -->
+    <div class="card mb-6">
+      <div class="px-5 py-4 border-b border-gray-100 bg-white">
+        <h1 class="text-2xl font-semibold text-secondary-900">
+          <span class="text-primary-600">{prefectureData.name}</span> のUR空き情報
+        </h1>
+      </div>
+      <div class="p-5 bg-white">
+        <p class="text-secondary-600 text-sm">
+          {regionData.name}の{prefectureData.name}における空き部屋情報
+        </p>
+      </div>
+    </div>
+
+    <!-- Property List Card -->
+    <div class="card">
+      <div
+        class="px-5 py-4 border-b border-gray-100 bg-white flex items-center justify-between"
+      >
+        <h2 class="text-lg font-medium text-secondary-900">物件一覧</h2>
+      </div>
+      <div class="p-5">
+        <!-- Loading state -->
+        <div class="flex flex-col items-center justify-center py-6">
+          <div class="relative h-8 w-8">
+            <div
+              class="h-8 w-8 rounded-full border-2 border-primary-200 border-t-primary-600 animate-spin"
+            >
+            </div>
+          </div>
+          <p class="mt-4 text-secondary-700 text-sm">
+            現在、物件情報を読み込んでいます...
+          </p>
+          <p class="text-xs text-secondary-500 mt-1.5">
+            今後、UR団地の物件データが表示されます
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* Additional custom styles for this page */
+</style>

@@ -1,11 +1,9 @@
-export type Locale = "ja" | "en" | "zh";
+export type Locale = "ja";
 
 export const defaultLocale: Locale = "ja";
 
 export const locales: Record<Locale, string> = {
   ja: "日本語",
-  en: "English",
-  zh: "中文",
 };
 
 export interface TranslationContent {
@@ -112,139 +110,6 @@ export const translations: Record<Locale, TranslationContent> = {
       },
       footer: {
         copyright: "© 2025 UR空き情報モニター",
-      },
-    },
-  },
-  en: {
-    meta: {
-      title:
-        "UR Property Monitor - Get LINE notifications for available UR rental housing",
-      description:
-        "Receive real-time LINE notifications for available UR rental housing. Get notified immediately when your desired property becomes vacant.",
-    },
-    nav: {
-      languageSelector: "Select Language",
-    },
-    sections: {
-      hero: {
-        title: "UR Property Monitor",
-        subtitle: "Get LINE notifications for available UR rental housing",
-      },
-      painPoints: {
-        title: "Challenges when searching for UR rental housing",
-        points: [
-          "Popular properties get taken quickly",
-          "Difficult to find good properties",
-          "First-come-first-served system creates fierce competition",
-          "Need to check for desired properties daily",
-          "Missing the timing means the property gets reserved by someone else",
-        ],
-      },
-      service: {
-        title: "Monitor Available Properties Easily via LINE",
-        description:
-          "Our service notifies you via LINE immediately when your desired UR property becomes available. Save the hassle of checking the website daily and get support to not miss your ideal property.",
-      },
-      howTo: {
-        title: "How to Use",
-        steps: [
-          {
-            title: "1. Add the LINE Official Account",
-            description: "First, add our LINE official account as a friend.",
-          },
-          {
-            title: "2. Register Your Desired Property",
-            description:
-              "Send a message in the specified format to register the property you want to monitor. You can set conditions such as housing complex name and room layout.",
-          },
-          {
-            title: "3. Receive Notifications",
-            description:
-              "You will receive a LINE notification when a property matching your desired conditions becomes available.",
-          },
-          {
-            title: "4. How to Unregister",
-            description:
-              "If you wish to stop monitoring a property, you can do so by sending a specified message.",
-          },
-        ],
-      },
-      notes: {
-        title: "Notes for Usage",
-        points: [
-          "Currently, each user can monitor only one property (with room layout specification)",
-          "Available properties are notified only once",
-          "If you do not find your desired property, you need to register again after that property has been rented out",
-          "Due to system limitations, notifications may occasionally be delayed",
-        ],
-      },
-      footer: {
-        copyright: "© 2025 UR Property Monitor",
-      },
-    },
-  },
-  zh: {
-    meta: {
-      title: "UR房源监控 - LINE通知UR租赁住房空置信息",
-      description:
-        "通过LINE实时通知UR租赁住房的空置房源信息。当您心仪的房源一有空置，立即通知您。",
-    },
-    nav: {
-      languageSelector: "选择语言",
-    },
-    sections: {
-      hero: {
-        title: "UR房源监控",
-        subtitle: "通过LINE通知UR租赁住房空置信息",
-      },
-      painPoints: {
-        title: "寻找UR租赁住房时的挑战",
-        points: [
-          "热门房源很快就被抢光",
-          "很难找到好的房源",
-          "先到先得的制度导致竞争激烈",
-          "需要每天检查心仪的房源",
-          "错过时机意味着房源被他人预定",
-        ],
-      },
-      service: {
-        title: "通过LINE轻松监控空置房源",
-        description:
-          "我们的服务会在您心仪的UR房源空置时通过LINE立即通知您。省去每天查看网站的麻烦，帮助您不错过理想的房源。",
-      },
-      howTo: {
-        title: "使用方法",
-        steps: [
-          {
-            title: "1. 添加LINE官方账号",
-            description: "首先，将我们的LINE官方账号添加为好友。",
-          },
-          {
-            title: "2. 注册您心仪的房源",
-            description:
-              "按指定格式发送消息，注册您想监控的房源。您可以设置诸如住宅小区名称和房间布局等条件。",
-          },
-          {
-            title: "3. 接收通知",
-            description: "当符合您期望条件的房源出现时，您将收到LINE通知。",
-          },
-          {
-            title: "4. 如何取消注册",
-            description: "如果您希望停止监控房源，可以通过发送指定消息来取消。",
-          },
-        ],
-      },
-      notes: {
-        title: "使用注意事项",
-        points: [
-          "目前，每位用户只能监控一个房源（可指定房间布局）",
-          "空置房源只通知一次",
-          "如果您没有找到心仪的房源，需要在该房源被租出后重新注册",
-          "由于系统限制，通知可能偶尔会延迟",
-        ],
-      },
-      footer: {
-        copyright: "© 2025 UR房源监控",
       },
     },
   },
