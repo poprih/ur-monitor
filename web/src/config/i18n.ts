@@ -49,7 +49,7 @@ export interface TranslationContent {
 export const translations: Record<Locale, TranslationContent> = {
   ja: {
     meta: {
-      title: "UR物件モニター - UR賃貸住宅の空き情報をLINEでお知らせ",
+      title: "UR空き情報モニター - UR賃貸住宅の空き情報をLINEでお知らせ",
       description:
         "UR賃貸住宅の空き物件情報をリアルタイムでLINEに通知します。ご希望の物件が空いたらすぐにお知らせします。",
     },
@@ -58,7 +58,7 @@ export const translations: Record<Locale, TranslationContent> = {
     },
     sections: {
       hero: {
-        title: "UR物件モニター",
+        title: "UR空き情報モニター",
         subtitle: "UR賃貸住宅の空き情報をLINEでお知らせ",
       },
       painPoints: {
@@ -111,7 +111,7 @@ export const translations: Record<Locale, TranslationContent> = {
         ],
       },
       footer: {
-        copyright: "© 2025 UR物件モニター",
+        copyright: "© 2025 UR空き情報モニター",
       },
     },
   },
