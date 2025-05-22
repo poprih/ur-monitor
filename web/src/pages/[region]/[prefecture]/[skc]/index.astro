@@ -1,0 +1,175 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { getSkcs, getUrPropertiesBySkc } from "@/endpoints";
+import { ArrowLeft, HomeIcon } from "@/assets/icons";
+
+export const getStaticPaths = async () => {
+  const skcs = await getSkcs();
+  return skcs.map((skc) => ({
+    params: {
+      region: skc.region_code.toLowerCase(),
+      prefecture: skc.prefecture_code.toLowerCase(),
+      skc: skc.skc_code.toLowerCase(),
+    },
+    props: {
+      regionData: {
+        id: skc.region_id,
+        code: skc.region_code,
+        name: skc.region_name,
+      },
+      prefectureData: {
+        id: skc.prefecture_id,
+        code: skc.prefecture_code,
+        name: skc.prefecture_name,
+      },
+      areaData: {
+        id: skc.area_id,
+        name: skc.area_name,
+      },
+      skcData: {
+        id: skc.skc_id,
+        code: skc.skc_code,
+        name: skc.skc_name,
+      },
+    },
+  }));
+};
+
+const { regionData, prefectureData, skcData } = Astro.props;
+const properties = await getUrPropertiesBySkc(skcData.id);
+---
+
+<Layout
+  title={`${skcData.name}のUR空き情報 | UR空き情報モニター`}
+  description={`${skcData.name}のUR空き情報をリアルタイムでLINEに通知。希望の物件が空いたらすぐにお知らせします。`}
+>
+  <div class="bg-primary-50 py-4">
+    <div class="container mx-auto px-4">
+      <!-- Breadcrumb Navigation -->
+      <nav class="flex items-center text-sm" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center">
+          <li class="inline-flex items-center">
+            <a
+              href="/"
+              class="inline-flex items-center text-gray-600 hover:text-primary-600"
+            >
+              <HomeIcon class="w-4 h-4" />
+              ホーム
+            </a>
+          </li>
+          <li>
+            <a
+              href={`/${regionData.code.toLowerCase()}`}
+              class="inline-flex items-center text-gray-600 hover:text-primary-600"
+            >
+              <ArrowLeft class="w-4 h-4" />
+              <span class="ml-1 text-gray-500 md:ml-2 font-medium"
+                >{regionData.name}地方</span
+              >
+            </a>
+          </li>
+          <li>
+            <a
+              href={`/${regionData.code.toLowerCase()}/${prefectureData.code.toLowerCase()}`}
+              class="inline-flex items-center text-gray-600 hover:text-primary-600"
+            >
+              <ArrowLeft class="w-4 h-4" />
+              <span class="ml-1 text-gray-500 md:ml-2 font-medium"
+                >{prefectureData.name}</span
+              >
+            </a>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <ArrowLeft class="w-4 h-4" />
+              <span class="ml-1 text-gray-500 md:ml-2 font-medium"
+                >{skcData.name}</span
+              >
+            </div>
+          </li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="container mx-auto px-4 py-8 mt-4">
+    <a
+      href={`/${regionData.code.toLowerCase()}/${prefectureData.code.toLowerCase()}`}
+      class="inline-flex items-center text-secondary-600 hover:text-secondary-800 mb-6 transition-colors"
+    >
+      <ArrowLeft class="w-4 h-4" />
+      {prefectureData.name}に戻る
+    </a>
+
+    <!-- Header Card -->
+    <div class="card mb-6">
+      <div class="px-5 py-4 border-b border-gray-100 bg-white">
+        <h1 class="text-2xl font-semibold text-secondary-900">
+          {prefectureData.name}
+          <span class="text-primary-600">{skcData.name}</span> のUR空き状況をリアルタイムで通知
+        </h1>
+      </div>
+    </div>
+
+    <!-- Guide Card -->
+    <div class="card mb-6">
+      <div class="px-5 py-4 border-b border-gray-100 bg-white">
+        <h2 class="text-xl font-semibold text-secondary-800 mb-4">
+          使い方ガイド
+        </h2>
+        <div class="space-y-4 text-gray-700">
+          <p>1. 下記の物件から、希望の物件を選択してください。</p>
+          <p>2. 物件ページで、希望の間取りを設定できます。</p>
+          <p>3. LINEで友だち追加して、通知を受け取る準備をしましょう。</p>
+          <p>
+            4. 設定した条件に合う物件が空いたら、すぐにLINEでお知らせします！
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Property List Card -->
+    <div class="card">
+      {
+        properties.map((property) => (
+          <div class="px-5 py-4 border-b border-gray-100 bg-white">
+            <div class="flex items-start gap-4">
+              {/* {property.image && (
+                <img
+                  src={property.image}
+                  alt={property.name}
+                  class="w-32 h-32 object-cover rounded-lg"
+                />
+              )} */}
+              <div class="flex-1">
+                <h2 class="text-xl font-semibold text-secondary-800 mb-2">
+                  {property.name}
+                </h2>
+                {/* <div class="text-sm text-gray-600 mb-4">
+                  <p>家賃: {property.rent}</p>
+                  <p>共益費: {property.common_fee}</p>
+                </div> */}
+                {/* <div class="flex flex-wrap gap-2">
+                  {property.floor_plans.map((plan) => (
+                    <span class="px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm">
+                      {plan}
+                    </span>
+                  ))}
+                </div> */}
+                <div class="mt-4">
+                  <a
+                    href={`/${regionData.code.toLowerCase()}/${prefectureData.code.toLowerCase()}/${skcData.code.toLowerCase()}/${property.code}`}
+                    class="inline-flex items-center text-primary-600 hover:text-primary-800"
+                  >
+                    詳細を見る
+                    <ArrowLeft class="w-4 h-4 ml-1 rotate-180" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</Layout>

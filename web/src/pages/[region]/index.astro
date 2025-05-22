@@ -1,5 +1,5 @@
 ---
-import { getRegions, getPerfectures } from "../../endpoints";
+import { getRegions, getPrefectures } from "../../endpoints";
 import Layout from "../../layouts/Layout.astro";
 import { ArrowLeft, HomeIcon, InfoCircle } from "../../assets/icons";
 
@@ -17,7 +17,7 @@ export const getStaticPaths = async () => {
 };
 const { region } = Astro.params;
 const { id, name } = Astro.props;
-const prefectures = await getPerfectures(id);
+const prefectures = await getPrefectures(id);
 ---
 
 <Layout
