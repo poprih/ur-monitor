@@ -73,17 +73,17 @@ const areasWithSkcs = await getAreasWithSkcs(prefectureData.id);
     </div>
   </div>
 
-  <div class="container mx-auto px-4 py-8 mt-4">
+  <div class="container">
     <a
       href={`/${region}`}
-      class="inline-flex items-center text-secondary-600 hover:text-secondary-800 mb-6 transition-colors"
+      class="inline-flex items-center text-secondary-600 hover:text-secondary-800 mb-2 transition-colors"
     >
       <ArrowLeft class="w-4 h-4" />
       {regionData.name}に戻る
     </a>
 
     <!-- Header Card -->
-    <div class="card mb-6">
+    <div class="card mb-2">
       <div class="px-5 py-4 border-b border-gray-100 bg-white">
         <h1 class="text-2xl font-semibold text-secondary-900">
           <span class="text-primary-600">{prefectureData.name}</span
@@ -93,9 +93,9 @@ const areasWithSkcs = await getAreasWithSkcs(prefectureData.id);
     </div>
 
     <!-- Guide Card -->
-    <div class="card mb-6">
+    <div class="card mb-2">
       <div class="px-5 py-4 border-b border-gray-100 bg-white">
-        <h2 class="text-xl font-semibold text-secondary-800 mb-4">
+        <h2 class="text-xl font-semibold text-secondary-800 mb-2">
           使い方ガイド
         </h2>
         <div class="space-y-4 text-gray-700">

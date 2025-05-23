@@ -1,0 +1,220 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { getUrProperties, type IUrProperty } from "@/endpoints";
+import { ArrowLeft, HomeIcon } from "@/assets/icons";
+
+interface Props {
+  regionData: {
+    id: number;
+    code: string;
+    name: string;
+  };
+  prefectureData: {
+    id: number;
+    code: string;
+    name: string;
+  };
+  areaData: {
+    id: number;
+    name: string;
+  };
+  skcData: {
+    id: number;
+    code: string;
+    name: string;
+  };
+  propertyData: IUrProperty;
+}
+
+export const getStaticPaths = async () => {
+  const properties = await getUrProperties();
+  return properties.map((property) => ({
+    params: {
+      region: property.region.code.toLowerCase(),
+      prefecture: property.prefecture.code.toLowerCase(),
+      skc: property.skc.code.toLowerCase(),
+      property: property.code,
+    },
+    props: {
+      regionData: property.region,
+      prefectureData: property.prefecture,
+      skcData: property.skc,
+      propertyData: property,
+    },
+  }));
+};
+
+const { regionData, prefectureData, skcData, propertyData } =
+  Astro.props as Props;
+---
+
+<Layout
+  title={`${propertyData.name}のUR空き情報 | UR空き情報モニター`}
+  description={`${propertyData.name}のUR空き情報をリアルタイムでLINEに通知。希望の物件が空いたらすぐにお知らせします。`}
+>
+  <div class="bg-primary-50 py-4">
+    <div class="container mx-auto px-4">
+      <!-- Breadcrumb Navigation -->
+      <nav class="flex items-center text-sm" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center">
+          <li class="inline-flex items-center">
+            <a
+              href="/"
+              class="inline-flex items-center text-gray-600 hover:text-primary-600"
+            >
+              <HomeIcon class="w-4 h-4" />
+              ホーム
+            </a>
+          </li>
+          <li>
+            <a
+              href={`/${regionData.code.toLowerCase()}`}
+              class="inline-flex items-center text-gray-600 hover:text-primary-600"
+            >
+              <ArrowLeft class="w-4 h-4" />
+              <span class="ml-1 text-gray-500 md:ml-2 font-medium"
+                >{regionData.name}地方</span
+              >
+            </a>
+          </li>
+          <li>
+            <a
+              href={`/${regionData.code.toLowerCase()}/${prefectureData.code.toLowerCase()}`}
+              class="inline-flex items-center text-gray-600 hover:text-primary-600"
+            >
+              <ArrowLeft class="w-4 h-4" />
+              <span class="ml-1 text-gray-500 md:ml-2 font-medium"
+                >{prefectureData.name}</span
+              >
+            </a>
+          </li>
+          <li>
+            <a
+              href={`/${regionData.code.toLowerCase()}/${prefectureData.code.toLowerCase()}/${skcData.code.toLowerCase()}`}
+              class="inline-flex items-center text-gray-600 hover:text-primary-600"
+            >
+              <ArrowLeft class="w-4 h-4" />
+              <span class="ml-1 text-gray-500 md:ml-2 font-medium"
+                >{skcData.name}</span
+              >
+            </a>
+          </li>
+          <li>
+            <div class="flex items-center">
+              <ArrowLeft class="w-4 h-4" />
+              <span class="ml-1 text-gray-500 md:ml-2 font-medium"
+                >{propertyData.name}</span
+              >
+            </div>
+          </li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+
+  <div class="container">
+    <a
+      href={`/${regionData.code.toLowerCase()}/${prefectureData.code.toLowerCase()}/${skcData.code.toLowerCase()}`}
+      class="inline-flex items-center text-secondary-600 hover:text-secondary-800 mb-2 transition-colors"
+    >
+      <ArrowLeft class="w-4 h-4" />
+      {skcData.name}に戻る
+    </a>
+
+    <!-- Header Card -->
+    <div class="card mb-2">
+      <div class="px-5 py-4 border-b border-gray-100 bg-white">
+        <h1 class="text-2xl font-semibold text-secondary-900">
+          <span class="text-primary-600">{propertyData.name}</span
+          >の空き状況をリアルタイムで通知
+        </h1>
+      </div>
+    </div>
+
+    <!-- Property Details Card -->
+    <div class="card mb-2">
+      <div class="px-5 py-4 border-b border-gray-100 bg-white">
+        <div class="flex items-start gap-4">
+          <!-- {
+            propertyData.image && (
+              <img
+                src={propertyData.image}
+                alt={propertyData.name}
+                class="w-48 h-48 object-cover rounded-lg"
+              />
+            )
+          } -->
+          <div class="flex-1">
+            <h2 class="text-xl font-semibold text-secondary-800 mb-2">
+              物件情報
+            </h2>
+            <div class="space-y-2 text-gray-700">
+              <!-- <p>家賃: {propertyData.rent}</p>
+              <p>共益費: {propertyData.common_fee}</p> -->
+              <!-- {
+                propertyData.url && (
+                  <p>
+                    <a
+                      href={`https://www.ur-net.go.jp${propertyData.url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-primary-600 hover:text-primary-800"
+                    >
+                      UR公式サイトで詳細を見る
+                    </a>
+                  </p>
+                )
+              } -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floor Plans Card -->
+    <div class="card mb-2">
+      <div class="px-5 py-4 border-b border-gray-100 bg-white">
+        <h2 class="text-xl font-semibold text-secondary-800 mb-2">
+          間取りを選択
+        </h2>
+        <p class="text-gray-700 mb-2">
+          通知を受け取りたい間取りを選択してください。複数選択可能です。
+        </p>
+      </div>
+    </div>
+
+    <!-- Guide Card -->
+    <div class="card">
+      <div class="px-5 py-4 border-b border-gray-100 bg-white">
+        <h2 class="text-xl font-semibold text-secondary-800 mb-2">
+          使い方ガイド
+        </h2>
+        <div class="space-y-4 text-gray-700">
+          <p>1. 上記の間取りから、希望の間取りを選択してください。</p>
+          <p>2. LINEで友だち追加して、通知を受け取る準備をしましょう。</p>
+          <p>
+            3. 設定した条件に合う物件が空いたら、すぐにLINEでお知らせします！
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<!-- <script>
+  const form = document.getElementById("floor-plan-form");
+  form?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const selectedPlans = Array.from(
+      form.querySelectorAll('input[name="floor_plans"]:checked')
+    ).map((input) => input.value);
+
+    if (selectedPlans.length === 0) {
+      alert("少なくとも1つの間取りを選択してください。");
+      return;
+    }
+
+    // TODO: Implement LINE notification subscription
+    console.log("Selected floor plans:", selectedPlans);
+  });
+</script> -->

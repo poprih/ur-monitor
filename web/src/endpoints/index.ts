@@ -100,31 +100,87 @@ export interface IUrProperty {
   id: string;
   name: string;
   code: string;
+  region: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  prefecture: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  area: {
+    id: string;
+    name: string;
+    ur_area_code: string;
+  };
+  skc: {
+    id: string;
+    code: string;
+    name: string;
+  };
 }
 
-interface IUrPropertyRow {
-  id: string;
-  name: string;
-  code: string;
-}
-
-export const getUrPropertiesBySkc: (
-  skcId: string
-) => Promise<IUrProperty[]> = async (skcId: string) => {
+export const getUrProperties = async (skcId?: string) => {
   const sql = neon(DATABASE_URL);
-  const results = (await sql`
+  const results = await sql`
     SELECT 
       u.id,
       u.unit_name as name,
-      u.unit_code as code
+      u.unit_code as code,
+      r.id as region_id,
+      r.code as region_code,
+      r.name as region_name,
+      p.id as prefecture_id,
+      p.code as prefecture_code,
+      p.name as prefecture_name,
+      a.id as area_id,
+      a.name as area_name,
+      a.ur_area_code as ur_area_code,
+      s.id as skc_id,
+      s.code as skc_code,
+      s.name as skc_name
     FROM units u
-    WHERE u.skc_id = ${skcId}
-    ORDER BY u.unit_name
-  `) as IUrPropertyRow[];
+    JOIN skcs s ON s.id = u.skc_id
+    JOIN areas a ON a.id = s.area_id
+    JOIN prefectures p ON p.id = a.prefecture_id
+    JOIN regions r ON r.id = p.region_id
+    ${skcId ? sql`WHERE s.id = ${skcId}` : sql``}
+    ORDER BY r.code, p.code, a.name, s.code, u.unit_name
+  `;
 
   return results.map((row) => ({
     id: row.id,
     name: row.name,
     code: row.code,
+    region: {
+      id: row.region_id,
+      code: row.region_code,
+      name: row.region_name,
+    },
+    prefecture: {
+      id: row.prefecture_id,
+      code: row.prefecture_code,
+      name: row.prefecture_name,
+    },
+    area: {
+      id: row.area_id,
+      name: row.area_name,
+      ur_area_code: row.ur_area_code,
+    },
+    skc: {
+      id: row.skc_id,
+      code: row.skc_code,
+      name: row.skc_name,
+    },
   }));
+};
+
+export const getUrPropertyDetail = async (propertyCode: string) => {
+  const sql = neon(DATABASE_URL);
+  const result = await sql`
+    SELECT * FROM units WHERE unit_code = ${propertyCode}
+  `;
+  return result;
 };

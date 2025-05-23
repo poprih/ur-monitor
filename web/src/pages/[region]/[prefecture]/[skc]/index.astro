@@ -1,6 +1,6 @@
 ---
 import Layout from "@/layouts/Layout.astro";
-import { getSkcs, getUrPropertiesBySkc } from "@/endpoints";
+import { getSkcs, getUrProperties } from "@/endpoints";
 import { ArrowLeft, HomeIcon } from "@/assets/icons";
 
 export const getStaticPaths = async () => {
@@ -36,7 +36,7 @@ export const getStaticPaths = async () => {
 };
 
 const { regionData, prefectureData, skcData } = Astro.props;
-const properties = await getUrPropertiesBySkc(skcData.id);
+const properties = await getUrProperties(skcData.id);
 ---
 
 <Layout
@@ -92,17 +92,17 @@ const properties = await getUrPropertiesBySkc(skcData.id);
     </div>
   </div>
 
-  <div class="container mx-auto px-4 py-8 mt-4">
+  <div class="container">
     <a
       href={`/${regionData.code.toLowerCase()}/${prefectureData.code.toLowerCase()}`}
-      class="inline-flex items-center text-secondary-600 hover:text-secondary-800 mb-6 transition-colors"
+      class="inline-flex items-center text-secondary-600 hover:text-secondary-800 mb-2 transition-colors"
     >
       <ArrowLeft class="w-4 h-4" />
       {prefectureData.name}に戻る
     </a>
 
     <!-- Header Card -->
-    <div class="card mb-6">
+    <div class="card mb-2">
       <div class="px-5 py-4 border-b border-gray-100 bg-white">
         <h1 class="text-2xl font-semibold text-secondary-900">
           {prefectureData.name}
@@ -112,9 +112,9 @@ const properties = await getUrPropertiesBySkc(skcData.id);
     </div>
 
     <!-- Guide Card -->
-    <div class="card mb-6">
+    <div class="card mb-2">
       <div class="px-5 py-4 border-b border-gray-100 bg-white">
-        <h2 class="text-xl font-semibold text-secondary-800 mb-4">
+        <h2 class="text-xl font-semibold text-secondary-800 mb-2">
           使い方ガイド
         </h2>
         <div class="space-y-4 text-gray-700">
@@ -129,45 +129,17 @@ const properties = await getUrPropertiesBySkc(skcData.id);
     </div>
 
     <!-- Property List Card -->
-    <div class="card">
+    <div class="card p-4">
       {
         properties.map((property) => (
-          <div class="px-5 py-4 border-b border-gray-100 bg-white">
-            <div class="flex items-start gap-4">
-              {/* {property.image && (
-                <img
-                  src={property.image}
-                  alt={property.name}
-                  class="w-32 h-32 object-cover rounded-lg"
-                />
-              )} */}
-              <div class="flex-1">
-                <h2 class="text-xl font-semibold text-secondary-800 mb-2">
-                  {property.name}
-                </h2>
-                {/* <div class="text-sm text-gray-600 mb-4">
-                  <p>家賃: {property.rent}</p>
-                  <p>共益費: {property.common_fee}</p>
-                </div> */}
-                {/* <div class="flex flex-wrap gap-2">
-                  {property.floor_plans.map((plan) => (
-                    <span class="px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm">
-                      {plan}
-                    </span>
-                  ))}
-                </div> */}
-                <div class="mt-4">
-                  <a
-                    href={`/${regionData.code.toLowerCase()}/${prefectureData.code.toLowerCase()}/${skcData.code.toLowerCase()}/${property.code}`}
-                    class="inline-flex items-center text-primary-600 hover:text-primary-800"
-                  >
-                    詳細を見る
-                    <ArrowLeft class="w-4 h-4 ml-1 rotate-180" />
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
+          <h2 class="text-xl leading-loose font-semibold">
+            <a
+              href={`/${regionData.code.toLowerCase()}/${prefectureData.code.toLowerCase()}/${skcData.code.toLowerCase()}/${property.code}`}
+              class="inline-flex items-center text-primary-600 hover:text-primary-800"
+            >
+              {property.name}
+            </a>
+          </h2>
         ))
       }
     </div>
