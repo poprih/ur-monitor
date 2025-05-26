@@ -24,6 +24,10 @@ func handleUnsubscribe(db *sql.DB, lineClient *line.LineClient, userID, messageT
 	var unitID int
 	err := db.QueryRow("SELECT id FROM units WHERE unit_name ILIKE $1", mansionName).Scan(&unitID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			lineClient.SendReplyMessage(replyToken, line.MessageTemplates.InvalidUnitName)
+			return fmt.Errorf("unit not found: %s", mansionName)
+		}
 		lineClient.SendReplyMessage(replyToken, line.MessageTemplates.InvalidUnitName)
 		return err
 	}
@@ -75,13 +79,27 @@ func handleSubscribe(db *sql.DB, lineClient *line.LineClient, userID string, par
 	var subscriptionCount int
 	err := db.QueryRow("SELECT is_premium FROM users WHERE line_user_id = $1", userID).Scan(&isPremium)
 	if err != nil {
-		return err
+		if err == sql.ErrNoRows {
+			// User doesn't exist yet, create them with default values
+			_, insertErr := db.Exec("INSERT INTO users (line_user_id, is_premium) VALUES ($1, FALSE) ON CONFLICT (line_user_id) DO NOTHING", userID)
+			if insertErr != nil {
+				return insertErr
+			}
+			isPremium = false // Default to non-premium
+		} else {
+			return err
+		}
 	}
 
 	if !isPremium {
 		err = db.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE line_user_id = $1 AND deleted_at IS NULL", userID).Scan(&subscriptionCount)
 		if err != nil {
-			return err
+			// COUNT(*) should never return no rows, but handle it gracefully
+			if err == sql.ErrNoRows {
+				subscriptionCount = 0
+			} else {
+				return err
+			}
 		}
 
 		if subscriptionCount >= 1 {
@@ -94,6 +112,10 @@ func handleSubscribe(db *sql.DB, lineClient *line.LineClient, userID string, par
 	var unitID int
 	err = db.QueryRow("SELECT id FROM units WHERE unit_name ILIKE $1", unitName).Scan(&unitID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			lineClient.SendReplyMessage(replyToken, line.MessageTemplates.InvalidUnitName)
+			return fmt.Errorf("unit not found: %s", unitName)
+		}
 		lineClient.SendReplyMessage(replyToken, line.MessageTemplates.InvalidUnitName)
 		return err
 	}
@@ -271,8 +293,13 @@ func HandleLine(w http.ResponseWriter, r *http.Request) {
 					err = database.QueryRow("SELECT COUNT(*) FROM subscriptions WHERE unit_id = $1 AND line_user_id != $2", 
 						unitID, e.Source.UserID).Scan(&count)
 					if err != nil {
-						log.Println("Error counting other subscribers:", err)
-						continue
+						// COUNT(*) should never return no rows, but handle it gracefully
+						if err == sql.ErrNoRows {
+							count = 0
+						} else {
+							log.Println("Error counting other subscribers:", err)
+							continue
+						}
 					}
 					
 					// If no other subscribers, set the unit subscription status to false

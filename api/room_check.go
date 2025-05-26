@@ -222,7 +222,11 @@ func notifySubscribedUsers(db *sql.DB, unitName string, response *URResponse) er
 		var propertyURL string
 		err = db.QueryRow("SELECT url FROM units WHERE unit_name = $1", unitName).Scan(&propertyURL)
 		if err != nil {
-			log.Printf("Error getting property URL: %v", err)
+			if err == sql.ErrNoRows {
+				log.Printf("No URL found for unit: %s", unitName)
+			} else {
+				log.Printf("Error getting property URL: %v", err)
+			}
 		} else {
 			fullURL := fmt.Sprintf("https://www.ur-net.go.jp%s", propertyURL)
 			messageBuilder.WriteString(fmt.Sprintf("\n物件詳細 / Property details: %s\n", fullURL))
